@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Shop - Đồ dùng & Trang trí Thủ công, Mỹ nghệ Độc đáo</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ==================== SITE HEADER ==================== -->
+  <header class="site-header">
+    <div class="container header-container">
+      
+      <!-- Brand Logo -->
+      <a href="index.html" class="brand-logo" id="brandLogo">
+        <svg viewBox="0 0 24 24">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6" stroke="#ffffff" stroke-width="1.5"></line>
+          <path d="M16 10a4 4 0 0 1-8 0" stroke="#ffffff" stroke-width="2" fill="none"></path>
+        </svg>
+        <span>Mini Shop</span>
+      </a>
+
+      <!-- Main Navigation -->
+      <nav class="main-nav" aria-label="Menu chính">
+        <a href="index.html" class="nav-link active">Home</a>
+        <a href="products.html" class="nav-link">Products</a>
+        <a href="#aboutSection" class="nav-link">About</a>
+        <a href="#footerContact" class="nav-link">Contact</a>
+      </nav>
+
+      <!-- Search in Header -->
+      <div class="header-search">
+        <div class="search-input-wrap">
+          <input type="text" id="headerSearchInput" placeholder="Search products..." autocomplete="off">
+          <button class="search-btn" id="headerSearchBtn" title="Tìm kiếm">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Header Actions: Wishlist, Cart & Auth -->
+      <div class="header-actions">
+        <!-- Wishlist -->
+        <a href="wishlist.html" class="action-icon-btn" title="Danh sách yêu thích" id="wishlistHeaderBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span class="action-badge red" id="headerWishlistBadge" style="display: none;">0</span>
+        </a>
+
+        <!-- Cart -->
+        <a href="cart.html" class="action-icon-btn" title="Giỏ hàng" id="cartHeaderBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+          <span class="action-badge" id="headerCartBadge" style="display: none;">0</span>
+        </a>
+
+        <!-- User Authentication Buttons -->
+        <div class="auth-buttons" id="headerUserActions">
+          <a href="login.html" class="btn btn-sm btn-outline">Login</a>
+          <a href="register.html" class="btn btn-sm btn-blue">Register</a>
+          <a href="admin.html" class="btn btn-sm btn-admin">Admin</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main>
+    
+    <!-- Hero Banner Section -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-banner-card">
+          <div class="hero-content">
+            <h1 class="hero-title">Sống đẹp mỗi ngày<br>cùng Mini Shop</h1>
+            <p class="hero-subtitle">Sản phẩm chất lượng cho tổ ấm của bạn.</p>
+            <a href="products.html" class="btn btn-primary hero-cta-btn">Mua sắm ngay</a>
+
+            <!-- 3 Trust Badges -->
+            <div class="hero-features">
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="3" width="15" height="13"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                  </svg>
+                </div>
+                <div class="feature-text">
+                  <h4>Giao hàng nhanh</h4>
+                  <p>Toàn quốc</p>
+                </div>
+              </div>
+
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <path d="M9 12l2 2 4-4"></path>
+                  </svg>
+                </div>
+                <div class="feature-text">
+                  <h4>Bảo hành chính hãng</h4>
+                  <p>7 ngày đổi trả</p>
+                </div>
+              </div>
+
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+                  </svg>
+                </div>
+                <div class="feature-text">
+                  <h4>Hỗ trợ 24/7</h4>
+                  <p>Tư vấn tận tâm</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-image-wrap">
+            <img src="MiniShop_Assets/assets/images/banner/banner-trang-chu-mini-shop.webp" alt="Sống đẹp mỗi ngày cùng Mini Shop" loading="eager">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Categories Quick Filter Bar -->
+    <section class="categories-bar-section">
+      <div class="container">
+        <div class="category-pills-list" id="homeCategoryPills">
+          <button class="category-pill active" data-category="all">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Tất cả
+          </button>
+          <button class="category-pill" data-category="furniture">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"></path><path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0z"></path><path d="M5 18v2"></path><path d="M19 18v2"></path></svg>
+            Nội thất
+          </button>
+          <button class="category-pill" data-category="decor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            Trang trí
+          </button>
+          <button class="category-pill" data-category="kitchen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2v20M6 2v7a3 3 0 0 0 6 0V2"></path></svg>
+            Nhà bếp
+          </button>
+          <button class="category-pill" data-category="lighting">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5.76.76 1.23 1.52 1.41 2.5h6.18z"></path></svg>
+            Đèn
+          </button>
+          <button class="category-pill" data-category="craft">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+            Đồ thủ công
+          </button>
+          <button class="category-pill" data-category="storage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            Lưu trữ
+          </button>
+          <button class="category-pill" data-category="other">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+            Khác
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Products Section -->
+    <section class="featured-products-section" id="featuredSection">
+      <div class="container">
+        <div class="section-header-flex">
+          <h2 class="section-title">Sản phẩm nổi bật</h2>
+          <a href="products.html" class="section-link">Xem tất cả &rarr;</a>
+        </div>
+
+        <div class="products-grid" id="homeProductsGrid">
+          <!-- Các thẻ sản phẩm sẽ được render tự động từ dữ liệu ShopData qua JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- About Mini Shop Section -->
+    <section class="about-summary-section" id="aboutSection" style="padding: 40px 0; background: #ffffff; border-top: 1px solid var(--border-light);">
+      <div class="container" style="max-width: 860px; text-align: center;">
+        <h3 style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 12px;">Về Mini Shop</h3>
+        <p style="color: var(--text-muted); line-height: 1.8; font-size: 15px;">
+          Mini Shop tự hào là thương hiệu tuyển chọn các sản phẩm thủ công mỹ nghệ, đồ gốm trang trí và nội thất tối giản tinh tế. Chúng tôi kết hợp giữa tay nghề truyền thống của các làng nghề Việt Nam và phong cách sống hiện đại, mang đến sự ấm cúng, thanh lịch cho mọi không gian sống.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="site-footer" id="footerContact">
+    <div class="container">
+      <div class="footer-grid">
+        
+        <!-- Col 1: Brand Info -->
+        <div class="footer-col">
+          <a href="index.html" class="brand-logo" style="margin-bottom: 14px;">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6" stroke="#ffffff" stroke-width="1.5"></line>
+              <path d="M16 10a4 4 0 0 1-8 0" stroke="#ffffff" stroke-width="2" fill="none"></path>
+            </svg>
+            <span>Mini Shop</span>
+          </a>
+          <p class="footer-desc">Đồ dùng & trang trí cho cuộc sống tiện nghi và phong cách.</p>
+          <div class="footer-social-links">
+            <a href="#" class="social-link" title="Facebook">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+            </a>
+            <a href="#" class="social-link" title="Instagram">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+            </a>
+            <a href="#" class="social-link" title="YouTube">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#ffffff"></polygon></svg>
+            </a>
+            <a href="#" class="social-link" title="TikTok">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31 0 2.6.45 3.65 1.25a8.9 8.9 0 0 0 3.03 1.34v3.52a5.55 5.55 0 0 1-3.08-.94V15.5a6.5 6.5 0 1 1-6.5-6.5c.34 0 .67.03 1 .08v3.62a3 3 0 1 0 2.4 2.94V.02h-.5z"></path></svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Col 2: Info Links -->
+        <div class="footer-col">
+          <h4>Thông tin</h4>
+          <ul class="footer-links-list">
+            <li><a href="#aboutSection">Về chúng tôi</a></li>
+            <li><a href="#">Chính sách bảo mật</a></li>
+            <li><a href="#">Điều khoản sử dụng</a></li>
+            <li><a href="#">Chính sách đổi trả</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Customer Support -->
+        <div class="footer-col">
+          <h4>Hỗ trợ khách hàng</h4>
+          <ul class="footer-links-list">
+            <li><a href="#">Hướng dẫn mua hàng</a></li>
+            <li><a href="#">Thanh toán & giao hàng</a></li>
+            <li><a href="#">Bảo hành & đổi trả</a></li>
+            <li><a href="#">Câu hỏi thường gặp</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Contact -->
+        <div class="footer-col">
+          <h4>Liên hệ</h4>
+          <div class="footer-contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>Hà Nội, Việt Nam</span>
+          </div>
+          <div class="footer-contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <span>0123 456 789</span>
+          </div>
+          <div class="footer-contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span>support@minishop.vn</span>
+          </div>
+          <div class="footer-contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>08:00 - 21:00 (T2 - CN)</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Copyright -->
+      <div class="footer-bottom">
+        <p>&copy; 2025 Mini Shop. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Core Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Render sản phẩm nổi bật trên Trang Chủ
+    document.addEventListener('DOMContentLoaded', () => {
+      const grid = document.getElementById('homeProductsGrid');
+      const pills = document.querySelectorAll('#homeCategoryPills .category-pill');
+
+      function renderHomeProducts(category = 'all') {
+        const allProducts = ShopData.getProducts();
+        let filtered = allProducts;
+        
+        if (category !== 'all') {
+          filtered = allProducts.filter(p => p.category === category);
+        } else {
+          // Lấy 6 sản phẩm nổi bật đầu tiên
+          filtered = allProducts.slice(0, 6);
+        }
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px 0; color: var(--text-muted);">
+              Chưa có sản phẩm nào trong danh mục này.
+            </div>
+          `;
+          return;
+        }
+
+        grid.innerHTML = filtered.map(p => createProductCardHTML(p)).join('');
+      }
+
+      // Khởi tạo
+      renderHomeProducts('all');
+
+      // Bắt sự kiện bấm tab danh mục nhanh
+      pills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          pills.forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          const cat = pill.getAttribute('data-category');
+          renderHomeProducts(cat);
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>

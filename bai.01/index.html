@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bắt Điểm 30 Giây</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-wrapper">
+    <!-- Khung chính của Game -->
+    <main class="arcade-card" id="arcadeCard">
+      
+      <!-- Tiêu đề phát sáng -->
+      <header class="game-header">
+        <div class="title-wings left-wing">
+          <span></span><span></span><span></span>
+        </div>
+        <h1 class="game-title">Bắt Điểm 30 Giây</h1>
+        <div class="title-wings right-wing">
+          <span></span><span></span><span></span>
+        </div>
+      </header>
+
+      <!-- Thanh trạng thái HUD -->
+      <section class="hud-bar" aria-label="Bảng trạng thái">
+        <div class="hud-item time-hud" id="hudTimer">
+          <svg class="hud-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="9"></circle>
+            <polyline points="12 7 12 12 15 15"></polyline>
+          </svg>
+          <span class="hud-label" id="timerDisplay">00:30</span>
+        </div>
+
+        <div class="hud-item score-hud" id="hudScore">
+          <span class="hud-icon star-icon">⭐</span>
+          <span class="hud-text">Điểm <strong id="scoreDisplay">0</strong></span>
+        </div>
+
+        <div class="hud-item lives-hud" id="hudLives">
+          <span class="hud-icon heart-icon">❤️</span>
+          <span class="hud-text">Mạng <strong id="livesDisplay">3</strong></span>
+        </div>
+      </section>
+
+      <!-- Không gian chơi 3D Cyber Grid -->
+      <div class="play-zone-container" id="playZoneContainer">
+        <!-- Hiệu ứng lưới 3D -->
+        <div class="cyber-grid-room">
+          <div class="grid-wall grid-back"></div>
+          <div class="grid-wall grid-left"></div>
+          <div class="grid-wall grid-right"></div>
+          <div class="grid-wall grid-floor"></div>
+          <div class="grid-wall grid-ceiling"></div>
+        </div>
+
+        <!-- Vùng chứa các vật thể xuất hiện -->
+        <div class="game-arena" id="gameArena"></div>
+
+        <!-- Lớp hiệu ứng nổ hạt Particles -->
+        <canvas class="fx-canvas" id="fxCanvas"></canvas>
+
+        <!-- Lớp overlay khi chưa bắt đầu hoặc kết thúc -->
+        <div class="arena-overlay" id="arenaOverlay">
+          <div class="overlay-content" id="overlayContent">
+            <div class="intro-badge">🎮 Trò chơi phản xạ</div>
+            <h2>Sẵn Sàng Bắt Điểm?</h2>
+            <p>Bấm trúng <strong>Chấm Xanh</strong> để ghi điểm (+1). Tránh xa <strong>Quả Bom</strong> (-1 mạng)!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thanh điều khiển phía dưới -->
+      <footer class="game-footer">
+        <button type="button" class="action-btn" id="startBtn">Bắt đầu</button>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Modal thông báo kết thúc game -->
+  <div class="modal-backdrop" id="gameOverModal" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-badge" id="modalBadge">🏆 HẾT GIỜ!</div>
+      <h2 class="modal-title" id="modalTitle">KẾT THÚC LƯỢT CHƠI</h2>
+      
+      <div class="result-stats">
+        <div class="stat-card">
+          <span class="stat-label">Điểm Số Đạt Được</span>
+          <div class="stat-value highlight" id="finalScoreDisplay">0</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Kỷ Lục Điểm Cao</span>
+          <div class="stat-value gold" id="highScoreDisplay">0</div>
+        </div>
+      </div>
+
+      <div class="modal-msg" id="modalMessage">Bạn đã phản xạ rất tuyệt vời!</div>
+
+      <button type="button" class="modal-btn" id="restartBtn">Chơi Lại Ngay</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

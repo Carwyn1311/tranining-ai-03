@@ -1,0 +1,134 @@
+/* ==========================================================================
+   MINI SHOP - AUTH STYLES (bai.02)
+   Login & Register Clean Card Layout
+   ========================================================================== */
+
+.auth-page-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px 80px;
+  flex: 1;
+}
+
+.auth-card {
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  padding: 40px 36px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.auth-header .brand-logo {
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.auth-header h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.auth-header p {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.auth-form-footer a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.btn-auth-submit {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 700;
+  transition: var(--transition);
+  margin-top: 8px;
+}
+
+.btn-auth-submit:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.25);
+}
+
+/* Demo accounts helper box */
+.demo-accounts-box {
+  background: var(--bg-page);
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-top: 24px;
+}
+
+.demo-accounts-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.demo-btns-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn-quick-fill {
+  padding: 7px 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
+  text-align: center;
+  transition: var(--transition);
+}
+
+.btn-quick-fill:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.auth-switch-link {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.auth-switch-link a {
+  color: var(--primary);
+  font-weight: 700;
+}

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Danh Sách Sản Phẩm - Mini Shop</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/products.css">
+</head>
+<body>
+
+  <!-- ==================== SITE HEADER ==================== -->
+  <header class="site-header">
+    <div class="container header-container">
+      
+      <!-- Brand Logo -->
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6" stroke="#ffffff" stroke-width="1.5"></line>
+          <path d="M16 10a4 4 0 0 1-8 0" stroke="#ffffff" stroke-width="2" fill="none"></path>
+        </svg>
+        <span>Mini Shop</span>
+      </a>
+
+      <!-- Main Navigation -->
+      <nav class="main-nav" aria-label="Menu chính">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="products.html" class="nav-link active">Products</a>
+        <a href="index.html#aboutSection" class="nav-link">About</a>
+        <a href="#footerContact" class="nav-link">Contact</a>
+      </nav>
+
+      <!-- Search in Header -->
+      <div class="header-search">
+        <div class="search-input-wrap">
+          <input type="text" id="headerSearchInput" placeholder="Search products..." autocomplete="off">
+          <button class="search-btn" id="headerSearchBtn" title="Tìm kiếm">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Header Actions: Wishlist, Cart & Auth -->
+      <div class="header-actions">
+        <!-- Wishlist -->
+        <a href="wishlist.html" class="action-icon-btn" title="Danh sách yêu thích">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span class="action-badge red" id="headerWishlistBadge" style="display: none;">0</span>
+        </a>
+
+        <!-- Cart -->
+        <a href="cart.html" class="action-icon-btn" title="Giỏ hàng">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+          <span class="action-badge" id="headerCartBadge" style="display: none;">0</span>
+        </a>
+
+        <!-- Auth Buttons -->
+        <div class="auth-buttons" id="headerUserActions">
+          <a href="login.html" class="btn btn-sm btn-outline">Login</a>
+          <a href="register.html" class="btn btn-sm btn-blue">Register</a>
+          <a href="admin.html" class="btn btn-sm btn-admin">Admin</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="container">
+    
+    <!-- Breadcrumb -->
+    <div class="breadcrumb-nav">
+      <a href="index.html">Home</a>
+      <span class="separator">&gt;</span>
+      <span class="current">Products</span>
+    </div>
+
+    <!-- Products Page Layout: Sidebar + Main Content -->
+    <div class="products-layout-grid">
+      
+      <!-- ===== SIDEBAR FILTERS ===== -->
+      <aside class="products-sidebar" aria-label="Bộ lọc sản phẩm">
+        
+        <!-- Category Filter -->
+        <div class="sidebar-widget">
+          <h3 class="widget-title">Danh mục</h3>
+          <ul class="filter-category-list">
+            <li>
+              <button class="filter-category-btn active" data-category="all">
+                <span class="category-name-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                  Tất cả sản phẩm
+                </span>
+                <span class="category-count-badge">12</span>
+              </button>
+            </li>
+            <li>
+              <button class="filter-category-btn" data-category="furniture">
+                <span class="category-name-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"></path><path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0z"></path></svg>
+                  Nội thất
+                </span>
+                <span class="category-count-badge">4</span>
+              </button>
+            </li>
+            <li>
+              <button class="filter-category-btn" data-category="decor">
+                <span class="category-name-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  Đồ mỹ nghệ
+                </span>
+                <span class="category-count-badge">4</span>
+              </button>
+            </li>
+            <li>
+              <button class="filter-category-btn" data-category="craft">
+                <span class="category-name-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                  Đồ thủ công
+                </span>
+                <span class="category-count-badge">4</span>
+              </button>
+            </li>
+            <li>
+              <button class="filter-category-btn" data-category="lighting">
+                <span class="category-name-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5.76.76 1.23 1.52 1.41 2.5h6.18z"></path></svg>
+                  Đèn trang trí
+                </span>
+                <span class="category-count-badge">2</span>
+              </button>
+            </li>
+            <li>
+              <button class="filter-category-btn" data-category="storage">
+                <span class="category-name-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                  Lưu trữ
+                </span>
+                <span class="category-count-badge">2</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Price Range Filter -->
+        <div class="sidebar-widget">
+          <h3 class="widget-title">Khoảng giá</h3>
+          <div class="filter-radio-group">
+            <label class="filter-radio-label">
+              <span><input type="radio" name="priceFilter" value="all" checked> Tất cả mức giá</span>
+            </label>
+            <label class="filter-radio-label">
+              <span><input type="radio" name="priceFilter" value="under500"> Dưới 500.000đ</span>
+            </label>
+            <label class="filter-radio-label">
+              <span><input type="radio" name="priceFilter" value="500to1000"> 500.000đ – 1.000.000đ</span>
+            </label>
+            <label class="filter-radio-label">
+              <span><input type="radio" name="priceFilter" value="1000to2000"> 1.000.000đ – 2.000.000đ</span>
+            </label>
+            <label class="filter-radio-label">
+              <span><input type="radio" name="priceFilter" value="over2000"> Trên 2.000.000đ</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Availability Filter -->
+        <div class="sidebar-widget">
+          <h3 class="widget-title">Tình trạng</h3>
+          <label class="filter-radio-label">
+            <span><input type="checkbox" checked disabled> Còn hàng (In stock)</span>
+            <span class="count">12</span>
+          </label>
+        </div>
+
+      </aside>
+
+      <!-- ===== MAIN PRODUCTS AREA ===== -->
+      <section class="products-main-content">
+        
+        <!-- Toolbar: Title, Count, Search & Sort -->
+        <div class="products-toolbar">
+          <div class="products-page-title-wrap">
+            <h1>Tất cả sản phẩm</h1>
+            <p class="products-count-text" id="productsCountDisplay">Đang tải danh sách sản phẩm...</p>
+          </div>
+
+          <div class="products-toolbar-controls">
+            <!-- Search in page -->
+            <div class="search-in-page-wrap">
+              <input type="text" id="pageSearchInput" placeholder="Tìm kiếm sản phẩm...">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+
+            <!-- Sort By -->
+            <div class="sort-select-wrap">
+              <select id="pageSortSelect" aria-label="Sắp xếp sản phẩm">
+                <option value="newest">Sắp xếp: Mới nhất</option>
+                <option value="price-asc">Giá: Thấp đến Cao</option>
+                <option value="price-desc">Giá: Cao đến Thấp</option>
+                <option value="popular">Bán chạy nhất</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Products Grid (4 Columns) -->
+        <div class="products-grid products-grid-4" id="productsListGrid">
+          <!-- Rendered via JavaScript -->
+        </div>
+
+        <!-- Load More Button -->
+        <div class="load-more-wrap" id="loadMoreWrap" style="display: none;">
+          <button class="btn btn-load-more" id="loadMoreBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Xem thêm sản phẩm
+          </button>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="site-footer" id="footerContact">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="index.html" class="brand-logo" style="margin-bottom: 14px;">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6" stroke="#ffffff" stroke-width="1.5"></line>
+              <path d="M16 10a4 4 0 0 1-8 0" stroke="#ffffff" stroke-width="2" fill="none"></path>
+            </svg>
+            <span>Mini Shop</span>
+          </a>
+          <p class="footer-desc">Đồ dùng & trang trí cho cuộc sống tiện nghi và phong cách.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Thông tin</h4>
+          <ul class="footer-links-list">
+            <li><a href="index.html#aboutSection">Về chúng tôi</a></li>
+            <li><a href="#">Chính sách bảo mật</a></li>
+            <li><a href="#">Điều khoản sử dụng</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Hỗ trợ khách hàng</h4>
+          <ul class="footer-links-list">
+            <li><a href="#">Hướng dẫn mua hàng</a></li>
+            <li><a href="#">Thanh toán & giao hàng</a></li>
+            <li><a href="#">Bảo hành & đổi trả</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Liên hệ</h4>
+          <div class="footer-contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>Hà Nội, Việt Nam</span>
+          </div>
+          <div class="footer-contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <span>0123 456 789</span>
+          </div>
+          <div class="footer-contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span>support@minishop.vn</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2025 Mini Shop. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/products.js"></script>
+
+</body>
+</html>

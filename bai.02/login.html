@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Nhập - Mini Shop</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+  <!-- Site Header Minimal -->
+  <header class="site-header">
+    <div class="container header-container" style="justify-content: center;">
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6" stroke="#ffffff" stroke-width="1.5"></line>
+          <path d="M16 10a4 4 0 0 1-8 0" stroke="#ffffff" stroke-width="2" fill="none"></path>
+        </svg>
+        <span>Mini Shop</span>
+      </a>
+    </div>
+  </header>
+
+  <div class="auth-page-container">
+    <div class="auth-card">
+      
+      <div class="auth-header">
+        <h2>Đăng Nhập</h2>
+        <p>Truy cập vào tài khoản mua sắm của bạn</p>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+        
+        <div class="form-group">
+          <label for="loginEmail">Email hoặc Tên đăng nhập</label>
+          <input type="text" id="loginEmail" class="form-control" placeholder="user@minishop.vn" required>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">Mật khẩu</label>
+          <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <div class="auth-form-footer">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" checked> Ghi nhớ đăng nhập
+          </label>
+          <a href="#">Quên mật khẩu?</a>
+        </div>
+
+        <button type="submit" class="btn-auth-submit">Đăng nhập</button>
+
+      </form>
+
+      <!-- Quick Demo Login Hint Box -->
+      <div class="demo-accounts-box">
+        <div class="demo-accounts-title">⚡ Chọn tài khoản test nhanh:</div>
+        <div class="demo-btns-grid">
+          <button type="button" class="btn-quick-fill" onclick="fillDemoAccount('customer')">
+            👤 Khách hàng (User)
+          </button>
+          <button type="button" class="btn-quick-fill" onclick="fillDemoAccount('admin')">
+            🛡️ Quản trị viên (Admin)
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-switch-link">
+        Chưa có tài khoản? <a href="register.html">Đăng ký ngay</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom" style="border: none; padding: 0;">
+        <p>&copy; 2025 Mini Shop. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/auth.js"></script>
+
+</body>
+</html>

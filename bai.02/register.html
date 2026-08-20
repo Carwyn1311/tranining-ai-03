@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Ký Tài Khoản - Mini Shop</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+  <!-- Site Header Minimal -->
+  <header class="site-header">
+    <div class="container header-container" style="justify-content: center;">
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6" stroke="#ffffff" stroke-width="1.5"></line>
+          <path d="M16 10a4 4 0 0 1-8 0" stroke="#ffffff" stroke-width="2" fill="none"></path>
+        </svg>
+        <span>Mini Shop</span>
+      </a>
+    </div>
+  </header>
+
+  <div class="auth-page-container">
+    <div class="auth-card">
+      
+      <div class="auth-header">
+        <h2>Tạo Tài Khoản Mới</h2>
+        <p>Gia nhập cộng đồng yêu thích đồ thủ công Mini Shop</p>
+      </div>
+
+      <form id="registerForm" class="auth-form">
+        
+        <div class="form-group">
+          <label for="regName">Họ và tên *</label>
+          <input type="text" id="regName" class="form-control" placeholder="Nguyễn Văn A" required>
+        </div>
+
+        <div class="form-group">
+          <label for="regEmail">Địa chỉ Email *</label>
+          <input type="email" id="regEmail" class="form-control" placeholder="email@domain.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="regPhone">Số điện thoại *</label>
+          <input type="tel" id="regPhone" class="form-control" placeholder="0912 345 678" required>
+        </div>
+
+        <div class="form-group">
+          <label for="regPassword">Mật khẩu *</label>
+          <input type="password" id="regPassword" class="form-control" placeholder="Tối thiểu 6 ký tự" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label for="regConfirmPassword">Nhập lại mật khẩu *</label>
+          <input type="password" id="regConfirmPassword" class="form-control" placeholder="Nhập lại mật khẩu" required minlength="6">
+        </div>
+
+        <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.4;">
+          <label style="display: flex; align-items: flex-start; gap: 6px; cursor: pointer;">
+            <input type="checkbox" checked required style="margin-top: 2px;">
+            <span>Tôi đồng ý với các <a href="#" style="color: var(--primary);">Điều khoản & Dịch vụ</a> của Mini Shop.</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-auth-submit">Đăng ký tài khoản</button>
+
+      </form>
+
+      <div class="auth-switch-link">
+        Đã có tài khoản? <a href="login.html">Đăng nhập tại đây</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom" style="border: none; padding: 0;">
+        <p>&copy; 2025 Mini Shop. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/auth.js"></script>
+
+</body>
+</html>
