@@ -50,14 +50,84 @@ CREATE TABLE IF NOT EXISTS public.orders (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- TẠM THỜI TẮT RLS VÀ PHÂN QUYỀN TRUY CẬP CHO MÔI TRƯỜNG DEV (Theo Bài 5)
-ALTER TABLE public.categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.orders DISABLE ROW LEVEL SECURITY;
+-- ==========================================================
+-- BÀI 7: THIẾT LẬP KHÓA AN TOÀN RLS (ROW LEVEL SECURITY)
+-- ==========================================================
 
+-- 1. Hàm kiểm tra quyền Quản trị viên (Admin)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN (
+    COALESCE(auth.jwt() -> 'user_metadata' ->> 'role', '') = 'ADMIN'
+    OR COALESCE(auth.jwt() ->> 'email', '') ILIKE 'admin@%'
+    OR COALESCE(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'ADMIN'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+-- 2. KÍCH HOẠT RLS CHO CẢ 3 BẢNG
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+-- Cấp quyền cơ bản cho các vai trò
 GRANT ALL ON TABLE public.categories TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.products TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.orders TO anon, authenticated, service_role;
+
+-- Xóa các policy cũ nếu có
+DROP POLICY IF EXISTS "Public categories read" ON public.categories;
+DROP POLICY IF EXISTS "Admin categories manage" ON public.categories;
+DROP POLICY IF EXISTS "Public products read" ON public.products;
+DROP POLICY IF EXISTS "Admin products manage" ON public.products;
+DROP POLICY IF EXISTS "Public orders insert" ON public.orders;
+DROP POLICY IF EXISTS "Admin orders manage" ON public.orders;
+DROP POLICY IF EXISTS "User orders read own" ON public.orders;
+
+-- 3. POLICIES CHO BẢNG CATEGORIES (Danh mục)
+-- Ai cũng xem được danh mục
+CREATE POLICY "Public categories read" 
+ON public.categories FOR SELECT 
+USING (true);
+
+-- Chỉ Admin được thêm, sửa, xóa danh mục
+CREATE POLICY "Admin categories manage" 
+ON public.categories FOR ALL 
+USING (public.is_admin()) 
+WITH CHECK (public.is_admin());
+
+-- 4. POLICIES CHO BẢNG PRODUCTS (Sản phẩm)
+-- Ai cũng xem được danh sách và chi tiết sản phẩm
+CREATE POLICY "Public products read" 
+ON public.products FOR SELECT 
+USING (true);
+
+-- Chỉ Admin được thêm, sửa, xóa sản phẩm
+CREATE POLICY "Admin products manage" 
+ON public.products FOR ALL 
+USING (public.is_admin()) 
+WITH CHECK (public.is_admin());
+
+-- 5. POLICIES CHO BẢNG ORDERS (Đơn hàng)
+-- Khách vãng lai và khách đăng nhập đều được tạo đơn hàng mới
+CREATE POLICY "Public orders insert" 
+ON public.orders FOR INSERT 
+WITH CHECK (true);
+
+-- Admin xem và quản lý tất cả đơn hàng
+CREATE POLICY "Admin orders manage" 
+ON public.orders FOR ALL 
+USING (public.is_admin()) 
+WITH CHECK (public.is_admin());
+
+-- Khách hàng đã đăng nhập xem được đơn hàng của chính mình
+CREATE POLICY "User orders read own" 
+ON public.orders FOR SELECT 
+USING (
+  public.is_admin() 
+  OR (auth.jwt() ->> 'email' = email)
+);
 
 -- ==========================================================
 -- ĐỔ DỮ LIỆU MẪU (SEED DATA)
