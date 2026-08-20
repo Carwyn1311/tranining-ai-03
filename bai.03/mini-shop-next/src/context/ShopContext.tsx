@@ -101,7 +101,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   };
 
   const addProduct = async (productData: Omit<Product, 'id'>) => {
-    const newId = Date.now();
+    const newId = products.length > 0 ? Math.max(...products.map(p => Number(p.id))) + 1 : 1;
     const newProduct: Product = {
       ...productData,
       id: newId
@@ -162,7 +162,6 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     
     if (error) {
       console.error('Supabase createOrder error:', error);
-      // Still update optimistic state to prevent checkout blockage
       setOrders(prev => [newOrder, ...prev]);
     } else {
       setOrders(prev => [newOrder, ...prev]);

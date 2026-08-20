@@ -73,11 +73,16 @@ export default function AdminPage() {
     setProductModalOpen(true);
   };
 
-  const handleDeleteProduct = (p: Product) => {
-    if (confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${p.name}" không?`)) {
-      deleteProduct(p.id);
-      showToast(`Đã xóa sản phẩm "${p.name}".`);
+  const handleDeleteProduct = async (p: Product) => {
+    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm "${p.name}" (Mã #${p.id}) khỏi kho Supabase không?`)) {
+      await deleteProduct(p.id);
+      showToast(`Đã xóa sản phẩm "${p.name}" khỏi Supabase.`);
     }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    await updateOrderStatus(orderId, status);
+    showToast(`Đã cập nhật đơn #${orderId} sang trạng thái mới.`);
   };
 
   return (
@@ -393,7 +398,7 @@ export default function AdminPage() {
                         <select
                           className="form-control"
                           value={order.status}
-                          onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value as OrderStatus)}
                           style={{
                             fontSize: '12.5px',
                             fontWeight: 700,
