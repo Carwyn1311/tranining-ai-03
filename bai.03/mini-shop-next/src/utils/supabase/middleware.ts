@@ -33,8 +33,27 @@ export const updateSession = async (request: NextRequest) => {
     },
   );
 
-  // Refresh auth token
-  await supabase.auth.getUser();
+  // Refresh auth token and get user
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Route Guard: Chặn khu vực quản trị /admin
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith("/admin")) {
+    if (!user) {
+      // Chưa đăng nhập -> Chuyển về trang đăng nhập
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", "/admin");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Đã đăng nhập nhưng không có vai ADMIN -> Chặn và chuyển về login với thông báo
+    const role = user.user_metadata?.role || (user.email?.toLowerCase().startsWith("admin@") ? "ADMIN" : "CUSTOMER");
+    if (role !== "ADMIN") {
+      const unauthorizedUrl = new URL("/login", request.url);
+      unauthorizedUrl.searchParams.set("error", "unauthorized");
+      return NextResponse.redirect(unauthorizedUrl);
+    }
+  }
 
   return supabaseResponse;
 };

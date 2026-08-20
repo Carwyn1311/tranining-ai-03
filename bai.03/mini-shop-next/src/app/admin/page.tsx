@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useShop } from '@/context/ShopContext';
 import { useToast } from '@/context/ToastContext';
 import { Product, OrderStatus } from '@/types';
@@ -13,6 +15,8 @@ import OrdersDonutChart from '@/components/admin/OrdersDonutChart';
 import ProductFormModal from '@/components/admin/ProductFormModal';
 
 export default function AdminPage() {
+  const router = useRouter();
+  const { currentUser, isLoading: isAuthLoading } = useAuth();
   const { products, categories, orders, deleteProduct, updateOrderStatus } = useShop();
   const { showToast } = useToast();
 
@@ -20,6 +24,27 @@ export default function AdminPage() {
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productSearch, setProductSearch] = useState('');
+
+  // RBAC Route Guard: Chỉ cho phép tài khoản có vai ADMIN truy cập
+  useEffect(() => {
+    if (!isAuthLoading) {
+      if (!currentUser) {
+        router.push('/login?redirect=/admin');
+      } else if (currentUser.role !== 'ADMIN') {
+        showToast('Bạn không có quyền truy cập khu vực Quản trị.');
+        router.push('/login?error=unauthorized');
+      }
+    }
+  }, [currentUser, isAuthLoading, router, showToast]);
+
+  if (isAuthLoading || !currentUser || currentUser.role !== 'ADMIN') {
+    return (
+      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #e7e5e4', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Đang xác thực quyền Quản trị viên...</p>
+      </div>
+    );
+  }
 
   // Total metrics
   const totalProducts = products.length;

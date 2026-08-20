@@ -1,18 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '';
+  const errorParam = searchParams.get('error') || '';
+
   const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    errorParam === 'unauthorized'
+      ? '⚠️ Bạn cần đăng nhập bằng tài khoản Quản trị viên (Admin) để truy cập trang này.'
+      : null
+  );
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,9 +32,13 @@ export default function LoginPage() {
     try {
       const user = await login(email.trim(), password);
       if (user.role === 'ADMIN') {
-        router.push('/admin');
+        router.push(redirectPath || '/admin');
       } else {
-        router.push('/');
+        if (redirectPath.startsWith('/admin')) {
+          router.push('/');
+        } else {
+          router.push(redirectPath || '/');
+        }
       }
     } catch (err: any) {
       console.error('Đăng nhập lỗi:', err);
@@ -55,7 +67,7 @@ export default function LoginPage() {
         </div>
 
         {errorMessage && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '13px' }}>
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '12px 14px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '13px', lineHeight: 1.4 }}>
             {errorMessage}
           </div>
         )}
@@ -66,7 +78,7 @@ export default function LoginPage() {
             <input
               type="email"
               className="form-control"
-              placeholder="VD: ban@gmail.com"
+              placeholder="VD: admin@minishop.vn"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -103,5 +115,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="container" style={{ padding: '60px 0', textAlign: 'center' }}>Đang tải trang đăng nhập...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
