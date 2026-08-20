@@ -7,7 +7,7 @@ import ProductCard from '@/components/product/ProductCard';
 import CategoryPills from '@/components/product/CategoryPills';
 
 export default function HomePage() {
-  const { products } = useShop();
+  const { products, isLoading } = useShop();
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Filter products by selected category pill
@@ -63,7 +63,7 @@ export default function HomePage() {
                   <div className="feature-icon">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="1" y="3" width="15" height="13" />
-                      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                      <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
                       <circle cx="5.5" cy="18.5" r="2.5" />
                       <circle cx="18.5" cy="18.5" r="2.5" />
                     </svg>
@@ -130,9 +130,15 @@ export default function HomePage() {
           </div>
 
           <div className="products-grid">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {isLoading && products.length === 0 ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="product-card skeleton-card" style={{ minHeight: '300px', opacity: 0.5, background: '#f5f4f0' }} />
+              ))
+            ) : (
+              filteredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            )}
           </div>
 
           <div className="featured-bottom-cta">

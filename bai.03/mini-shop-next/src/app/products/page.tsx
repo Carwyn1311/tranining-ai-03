@@ -12,7 +12,7 @@ function ProductsContent() {
   const initialCategory = searchParams.get('category') || 'all';
   const initialQuery = searchParams.get('q') || '';
 
-  const { products, categories } = useShop();
+  const { products, categories, isLoading } = useShop();
 
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [searchQuery, setSearchQuery] = useState<string>(initialQuery);
@@ -219,7 +219,13 @@ function ProductsContent() {
             </div>
 
             {/* Products Grid or Empty */}
-            {filteredProducts.length > 0 ? (
+            {isLoading && products.length === 0 ? (
+              <div className="products-grid products-grid-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="product-card skeleton-card" style={{ minHeight: '300px', opacity: 0.5, background: '#f5f4f0' }} />
+                ))}
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="products-grid products-grid-4">
                 {filteredProducts.map(product => (
                   <ProductCard key={product.id} product={product} />
