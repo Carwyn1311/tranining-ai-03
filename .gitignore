@@ -24,9 +24,13 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Local env files
-.env*.local
+# Local env & secret files
 .env
+.env*
+*.env
+*.env.*
+.env.local
+.env.*.local
 
 # IDE / Editor
 .vscode/
