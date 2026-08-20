@@ -21,7 +21,7 @@ interface ShopContextType {
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
   updateProduct: (id: number, updated: Partial<Product>) => Promise<void>;
   deleteProduct: (id: number) => Promise<void>;
-  createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'status' | 'statusText'>) => Order;
+  createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'status' | 'statusText'>) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   refreshData: () => Promise<void>;
 }
@@ -84,7 +84,6 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching data from Supabase:', error);
-      // Fallback to local default data if network/table is unavailable
       setCategories(DEFAULT_CATEGORIES);
       setProducts(DEFAULT_PRODUCTS);
       setOrders(DEFAULT_ORDERS);
@@ -108,7 +107,6 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       id: newId
     };
 
-    // Optimistic UI update
     setProducts(prev => [newProduct, ...prev]);
 
     try {
@@ -123,7 +121,6 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProduct = async (id: number, updated: Partial<Product>) => {
-    // Optimistic UI update
     setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...updated } : p)));
 
     try {
@@ -138,7 +135,6 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteProduct = async (id: number) => {
-    // Optimistic UI update
     setProducts(prev => prev.filter(p => p.id !== id));
 
     try {
@@ -151,7 +147,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const createOrder = (orderData: Omit<Order, 'id' | 'createdAt' | 'status' | 'statusText'>): Order => {
+  const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'status' | 'statusText'>): Promise<Order> => {
     const newOrder: Order = {
       ...orderData,
       id: `MS-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -160,21 +156,17 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       statusText: 'Đang xử lý'
     };
 
-    // Optimistic UI update
-    setOrders(prev => [newOrder, ...prev]);
-
-    // Async save to Supabase
-    (async () => {
-      try {
-        const row = mapOrderToSupabase(newOrder);
-        const { error } = await supabase.from('orders').insert([row]);
-        if (error) {
-          console.error('Failed to insert order into Supabase:', error);
-        }
-      } catch (err) {
-        console.error('Supabase createOrder error:', err);
-      }
-    })();
+    // Save directly to Supabase orders table
+    const row = mapOrderToSupabase(newOrder);
+    const { error } = await supabase.from('orders').insert([row]);
+    
+    if (error) {
+      console.error('Supabase createOrder error:', error);
+      // Still update optimistic state to prevent checkout blockage
+      setOrders(prev => [newOrder, ...prev]);
+    } else {
+      setOrders(prev => [newOrder, ...prev]);
+    }
 
     return newOrder;
   };
@@ -189,7 +181,6 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 
     const statusText = statusMap[status] || status;
 
-    // Optimistic UI update
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status, statusText } : o))
     );

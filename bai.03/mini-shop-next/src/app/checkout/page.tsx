@@ -26,6 +26,8 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'BANK_TRANSFER' | 'MOMO'>('COD');
   const [createdOrderCode, setCreatedOrderCode] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (items.length === 0 && !createdOrderCode) {
     return (
@@ -43,29 +45,38 @@ export default function CheckoutPage() {
     );
   }
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
 
-    const newOrder = createOrder({
-      customerName: formData.customerName,
-      phone: formData.phone,
-      email: formData.email,
-      address: formData.address,
-      note: formData.note,
-      items: items.map(i => ({
-        id: i.id,
-        name: i.name,
-        price: i.price,
-        quantity: i.quantity,
-        image: i.image
-      })),
-      totalAmount,
-      shippingFee,
-      paymentMethod
-    });
+    try {
+      const newOrder = await createOrder({
+        customerName: formData.customerName,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+        note: formData.note,
+        items: items.map(i => ({
+          id: i.id,
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+          image: i.image
+        })),
+        totalAmount,
+        shippingFee,
+        paymentMethod
+      });
 
-    clearCart();
-    setCreatedOrderCode(newOrder.id);
+      clearCart();
+      setCreatedOrderCode(newOrder.id);
+    } catch (err: any) {
+      console.error('Lỗi khi đặt hàng:', err);
+      setErrorMessage(err?.message || 'Có lỗi xảy ra khi lưu đơn hàng vào kho. Vui lòng thử lại.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -93,7 +104,7 @@ export default function CheckoutPage() {
               </h2>
 
               <p style={{ fontSize: '14px', color: 'var(--text-body)', marginBottom: '12px' }}>
-                Cảm ơn bạn đã tin tưởng mua sắm tại Mini Shop.
+                Cảm ơn bạn đã tin tưởng mua sắm tại Mini Shop. Đơn hàng đã được lưu vào hệ thống kho.
               </p>
 
               <div style={{ background: 'var(--bg-page)', border: '1px dashed var(--primary)', borderRadius: 'var(--radius-md)', padding: '12px', margin: '16px 0', fontSize: '14px' }}>
@@ -126,6 +137,12 @@ export default function CheckoutPage() {
             <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
               1. Thông Tin Giao Hàng
             </h2>
+
+            {errorMessage && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '13.5px' }}>
+                {errorMessage}
+              </div>
+            )}
 
             <div className="form-grid-2">
               <div className="form-group">
@@ -285,8 +302,13 @@ export default function CheckoutPage() {
               <span className="total-amount">{formatVND(totalAmount)}</span>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-              Xác Nhận Đặt Hàng
+            <button 
+              type="submit" 
+              className="btn btn-primary btn-lg" 
+              style={{ width: '100%' }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Đang xử lý đặt hàng...' : 'Xác Nhận Đặt Hàng'}
             </button>
           </div>
 
