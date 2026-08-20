@@ -18,13 +18,29 @@ export default function ProductDetailPage() {
   const params = useParams();
   const productId = Number(params?.id);
 
-  const { getProductById, products } = useShop();
+  const { getProductById, products, isLoading } = useShop();
   const { addToCart } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
 
   const [quantity, setQuantity] = useState(1);
 
   const product = getProductById(productId);
+
+  if (isLoading && !product) {
+    return (
+      <div className="container" style={{ padding: '40px 20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+          <div className="skeleton-card" style={{ height: '420px', borderRadius: '16px' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="skeleton-card" style={{ height: '32px', width: '70%' }} />
+            <div className="skeleton-card" style={{ height: '24px', width: '40%' }} />
+            <div className="skeleton-card" style={{ height: '120px', width: '100%' }} />
+            <div className="skeleton-card" style={{ height: '50px', width: '50%' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
