@@ -11,30 +11,28 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      const user = login(email);
+    if (!email.trim() || !password.trim()) return;
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const user = await login(email.trim(), password);
       if (user.role === 'ADMIN') {
         router.push('/admin');
       } else {
         router.push('/');
       }
-    }
-  };
-
-  const handleQuickLogin = (role: 'CUSTOMER' | 'ADMIN') => {
-    if (role === 'ADMIN') {
-      setEmail('admin@minishop.vn');
-      setPassword('admin123');
-      login('admin@minishop.vn', 'ADMIN');
-      router.push('/admin');
-    } else {
-      setEmail('user@minishop.vn');
-      setPassword('user123');
-      login('user@minishop.vn', 'CUSTOMER');
-      router.push('/');
+    } catch (err: any) {
+      console.error('Đăng nhập lỗi:', err);
+      setErrorMessage(err?.message || 'Email hoặc mật khẩu không chính xác.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -56,13 +54,19 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {errorMessage && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '13px' }}>
+            {errorMessage}
+          </div>
+        )}
+
         <form onSubmit={handleLoginSubmit}>
           <div className="form-group">
-            <label>Địa chỉ Email</label>
+            <label>Địa chỉ Email *</label>
             <input
               type="email"
               className="form-control"
-              placeholder="VD: user@minishop.vn"
+              placeholder="VD: ban@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -70,7 +74,7 @@ export default function LoginPage() {
           </div>
 
           <div className="form-group">
-            <label>Mật khẩu</label>
+            <label>Mật khẩu *</label>
             <input
               type="password"
               className="form-control"
@@ -81,37 +85,17 @@ export default function LoginPage() {
             />
           </div>
 
-          <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: '8px' }}>
-            Đăng Nhập
+          <button 
+            type="submit" 
+            className="btn btn-primary btn-lg" 
+            style={{ width: '100%', marginTop: '8px' }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Đang đăng nhập...' : 'Đăng Nhập'}
           </button>
         </form>
 
-        {/* 1-Click Fast Test Login */}
-        <div className="demo-accounts-box">
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', textAlign: 'center' }}>
-            ⚡ 1-Click Đăng nhập thử nghiệm:
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('CUSTOMER')}
-              className="btn btn-sm btn-outline"
-              style={{ fontSize: '12px' }}
-            >
-              👤 Khách Hàng
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('ADMIN')}
-              className="btn btn-sm btn-admin"
-              style={{ fontSize: '12px' }}
-            >
-              🛡️ Quản Trị Viên
-            </button>
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-muted)' }}>
+        <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '13.5px', color: 'var(--text-muted)' }}>
           Chưa có tài khoản?{' '}
           <Link href="/register" style={{ color: 'var(--primary)', fontWeight: 700 }}>
             Đăng ký ngay

@@ -13,12 +13,24 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim() && email.trim()) {
-      register(name, email, phone);
+    if (!name.trim() || !email.trim() || !password.trim()) return;
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      await register(name.trim(), email.trim(), password, phone.trim());
       router.push('/');
+    } catch (err: any) {
+      console.error('Đăng ký lỗi:', err);
+      setErrorMessage(err?.message || 'Có lỗi xảy ra khi tạo tài khoản. Vui lòng thử lại.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -36,9 +48,15 @@ export default function RegisterPage() {
           </Link>
           <h1 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>Đăng Ký Tài Khoản</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Tạo tài khoản để nhận ưu đãi và quản lý đơn hàng
+            Tạo tài khoản qua Supabase Auth an toàn &amp; nhanh chóng
           </p>
         </div>
+
+        {errorMessage && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '13px' }}>
+            {errorMessage}
+          </div>
+        )}
 
         <form onSubmit={handleRegisterSubmit}>
           <div className="form-group">
@@ -66,7 +84,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="form-group">
-            <label>Số điện thoại</label>
+            <label>Số điện thoại (Tùy chọn)</label>
             <input
               type="tel"
               className="form-control"
@@ -89,12 +107,17 @@ export default function RegisterPage() {
             />
           </div>
 
-          <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: '8px' }}>
-            Tạo Tài Khoản
+          <button 
+            type="submit" 
+            className="btn btn-primary btn-lg" 
+            style={{ width: '100%', marginTop: '8px' }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Đang tạo tài khoản...' : 'Tạo Tài Khoản'}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-muted)' }}>
+        <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '13.5px', color: 'var(--text-muted)' }}>
           Đã có tài khoản?{' '}
           <Link href="/login" style={{ color: 'var(--primary)', fontWeight: 700 }}>
             Đăng nhập ngay

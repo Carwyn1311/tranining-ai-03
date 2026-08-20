@@ -69,7 +69,7 @@ export interface Order {
 }
 
 export interface User {
-  id: number;
+  id: string | number;
   name: string;
   email: string;
   phone?: string;
