@@ -29,6 +29,18 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Sync user profile when available
+  React.useEffect(() => {
+    if (currentUser) {
+      setFormData(prev => ({
+        ...prev,
+        customerName: prev.customerName || currentUser.name || '',
+        phone: prev.phone || currentUser.phone || '',
+        email: prev.email || currentUser.email || ''
+      }));
+    }
+  }, [currentUser]);
+
   if (items.length === 0 && !createdOrderCode) {
     return (
       <div className="checkout-page">
@@ -52,6 +64,7 @@ export default function CheckoutPage() {
 
     try {
       const newOrder = await createOrder({
+        userId: currentUser ? String(currentUser.id) : undefined,
         customerName: formData.customerName,
         phone: formData.phone,
         email: formData.email,
@@ -92,7 +105,7 @@ export default function CheckoutPage() {
         {/* Success Modal */}
         {createdOrderCode && (
           <div className="modal-backdrop">
-            <div className="modal-card">
+            <div className="modal-card" style={{ maxWidth: '480px' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M20 6L9 17l-5-5" />
@@ -118,11 +131,11 @@ export default function CheckoutPage() {
                 Chúng tôi sẽ liên hệ số điện thoại <strong>{formData.phone}</strong> để xác nhận và giao hàng trong thời gian sớm nhất.
               </p>
 
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                <Link href="/" className="btn btn-outline">
-                  Về trang chủ
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link href="/orders" className="btn btn-primary">
+                  📦 Xem đơn hàng của tôi
                 </Link>
-                <Link href="/products" className="btn btn-primary">
+                <Link href="/products" className="btn btn-outline">
                   Tiếp tục mua hàng
                 </Link>
               </div>

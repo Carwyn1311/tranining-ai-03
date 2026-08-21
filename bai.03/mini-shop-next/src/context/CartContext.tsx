@@ -53,11 +53,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, isLoaded]);
 
   const addToCart = (product: Product, quantity = 1) => {
+    if (product.stock !== undefined && product.stock <= 0) {
+      showToast(`Sản phẩm <strong>${product.name}</strong> hiện đã hết hàng!`, 'danger');
+      return;
+    }
+
     setItems(prev => {
       const existing = prev.find(i => i.id === product.id);
+      const currentQty = existing ? existing.quantity : 0;
+      const targetQty = currentQty + quantity;
+
+      if (product.stock !== undefined && targetQty > product.stock) {
+        showToast(`Kho chỉ còn <strong>${product.stock}</strong> sản phẩm <strong>${product.name}</strong>!`, 'danger');
+        if (existing) {
+          return prev.map(i => i.id === product.id ? { ...i, quantity: product.stock } : i);
+        }
+        return [
+          ...prev,
+          {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            categoryName: product.categoryName,
+            quantity: product.stock
+          }
+        ];
+      }
+
       if (existing) {
         return prev.map(i =>
-          i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i
+          i.id === product.id ? { ...i, quantity: targetQty } : i
         );
       }
       return [

@@ -44,16 +44,19 @@ export default function Header() {
         {/* Navigation Links */}
         <nav className="main-nav" aria-label="Menu chính">
           <Link href="/" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>
-            Home
+            Trang chủ
           </Link>
           <Link href="/products" className={`nav-link ${pathname.startsWith('/products') ? 'active' : ''}`}>
-            Products
+            Sản phẩm
+          </Link>
+          <Link href="/orders" className={`nav-link ${pathname.startsWith('/orders') ? 'active' : ''}`}>
+            Đơn hàng
           </Link>
           <Link href="/#aboutSection" className="nav-link">
-            About
+            Giới thiệu
           </Link>
           <Link href="/#footerContact" className="nav-link">
-            Contact
+            Liên hệ
           </Link>
         </nav>
 

@@ -47,29 +47,38 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
 
-      // 1. Fetch Categories
-      const { data: catData, error: catError } = await supabase
-        .from('categories')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (!catError && catData && catData.length > 0) {
-        setCategories(catData.map(mapSupabaseCategory));
-      } else {
-        setCategories(DEFAULT_CATEGORIES);
-      }
-
-      // 2. Fetch Products
+      // 1. Fetch Products
+      let loadedProducts = DEFAULT_PRODUCTS;
       const { data: prodData, error: prodError } = await supabase
         .from('products')
         .select('*')
         .order('id', { ascending: true });
 
       if (!prodError && prodData && prodData.length > 0) {
-        setProducts(prodData.map(mapSupabaseProduct));
-      } else {
-        setProducts(DEFAULT_PRODUCTS);
+        loadedProducts = prodData.map(mapSupabaseProduct);
       }
+      setProducts(loadedProducts);
+
+      // 2. Fetch Categories & Calculate Dynamic Count
+      let rawCats = DEFAULT_CATEGORIES;
+      const { data: catData, error: catError } = await supabase
+        .from('categories')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (!catError && catData && catData.length > 0) {
+        rawCats = catData.map(mapSupabaseCategory);
+      }
+
+      // Compute dynamic counts based on actual products
+      const computedCats = rawCats.map(cat => {
+        if (cat.id === 'all') {
+          return { ...cat, count: loadedProducts.length };
+        }
+        const matchingCount = loadedProducts.filter(p => p.category === cat.id).length;
+        return { ...cat, count: matchingCount };
+      });
+      setCategories(computedCats);
 
       // 3. Fetch Orders
       const { data: orderData, error: orderError } = await supabase
@@ -156,15 +165,30 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       statusText: 'Đang xử lý'
     };
 
-    // Save directly to Supabase orders table
+    // 1. Update local & remote stock for purchased items
+    orderData.items.forEach(async (item) => {
+      setProducts(prev => prev.map(p => {
+        if (p.id === item.id) {
+          const updatedStock = Math.max(0, p.stock - item.quantity);
+          // Sync to Supabase
+          supabase.from('products').update({ stock: updatedStock }).eq('id', p.id).then();
+          return { ...p, stock: updatedStock };
+        }
+        return p;
+      }));
+    });
+
+    // 2. Save directly to Supabase orders table
     const row = mapOrderToSupabase(newOrder);
-    const { error } = await supabase.from('orders').insert([row]);
-    
-    if (error) {
-      console.error('Supabase createOrder error:', error);
-      setOrders(prev => [newOrder, ...prev]);
-    } else {
-      setOrders(prev => [newOrder, ...prev]);
+    setOrders(prev => [newOrder, ...prev]);
+
+    try {
+      const { error } = await supabase.from('orders').insert([row]);
+      if (error) {
+        console.error('Supabase createOrder error:', error);
+      }
+    } catch (e) {
+      console.error('Supabase createOrder network error:', e);
     }
 
     return newOrder;
@@ -179,6 +203,21 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     };
 
     const statusText = statusMap[status] || status;
+    const targetOrder = orders.find(o => o.id === orderId);
+
+    // If order is cancelled, restore stock for its items
+    if (status === 'CANCELLED' && targetOrder && targetOrder.status !== 'CANCELLED') {
+      targetOrder.items.forEach(async (item) => {
+        setProducts(prev => prev.map(p => {
+          if (p.id === item.id) {
+            const restoredStock = p.stock + item.quantity;
+            supabase.from('products').update({ stock: restoredStock }).eq('id', p.id).then();
+            return { ...p, stock: restoredStock };
+          }
+          return p;
+        }));
+      });
+    }
 
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status, statusText } : o))

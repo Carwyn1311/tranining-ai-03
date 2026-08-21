@@ -91,9 +91,19 @@ export default function ProductDetailPage() {
             
             {/* Badges */}
             <div className="detail-badges-row">
-              <span className="stock-badge">
-                ● Còn {product.stock} sản phẩm
-              </span>
+              {product.stock <= 0 ? (
+                <span className="stock-badge" style={{ background: '#fef2f2', color: '#dc2626', borderColor: '#fecaca' }}>
+                  ● Đã hết hàng
+                </span>
+              ) : product.stock <= 5 ? (
+                <span className="stock-badge" style={{ background: '#fffbeb', color: '#d97706', borderColor: '#fde68a' }}>
+                  ⚠️ Chỉ còn {product.stock} sản phẩm trong kho
+                </span>
+              ) : (
+                <span className="stock-badge">
+                  ● Còn {product.stock} sản phẩm
+                </span>
+              )}
               <span className="category-tag-badge">
                 {product.categoryName}
               </span>
@@ -131,30 +141,38 @@ export default function ProductDetailPage() {
             </p>
 
             {/* Quantity Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '8px 0' }}>
-              <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)' }}>
-                Số lượng mua:
-              </span>
-              <QuantitySelector
-                quantity={quantity}
-                onQuantityChange={setQuantity}
-                max={product.stock}
-              />
-            </div>
+            {product.stock > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '8px 0' }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)' }}>
+                  Số lượng mua:
+                </span>
+                <QuantitySelector
+                  quantity={quantity}
+                  onQuantityChange={setQuantity}
+                  max={product.stock}
+                />
+              </div>
+            ) : (
+              <div style={{ color: '#dc2626', fontSize: '13.5px', fontWeight: 600, margin: '8px 0' }}>
+                Sản phẩm tạm thời hết hàng. Vui lòng quay lại sau!
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="detail-actions-row">
               <button
                 type="button"
                 onClick={() => addToCart(product, quantity)}
-                className="btn-detail-add-cart"
+                className={`btn-detail-add-cart ${product.stock <= 0 ? 'disabled' : ''}`}
+                disabled={product.stock <= 0}
+                style={product.stock <= 0 ? { opacity: 0.6, cursor: 'not-allowed', background: '#9ca3af' } : {}}
               >
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                   <line x1="3" y1="6" x2="21" y2="6" />
                   <path d="M16 10a4 4 0 0 1-8 0" />
                 </svg>
-                <span>Thêm vào giỏ hàng</span>
+                <span>{product.stock <= 0 ? 'Đã hết hàng' : 'Thêm vào giỏ hàng'}</span>
               </button>
 
               <button

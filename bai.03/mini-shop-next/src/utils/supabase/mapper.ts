@@ -89,6 +89,7 @@ export function mapOrderToSupabase(order: Order) {
 export function mapSupabaseOrder(row: any): Order {
   return {
     id: row.id,
+    userId: row.user_id || undefined,
     customerName: row.customer_name,
     phone: row.phone,
     email: row.email || undefined,

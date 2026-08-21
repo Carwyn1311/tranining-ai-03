@@ -21,11 +21,15 @@ export default function ProductCard({ product }: ProductCardProps) {
     <div className="product-card">
       {/* Product Image & Badges */}
       <div className="product-card-media">
-        {product.badge && (
+        {product.stock <= 0 ? (
+          <span className="card-badge-top-left red" style={{ background: '#ef4444' }}>
+            Hết hàng
+          </span>
+        ) : product.badge ? (
           <span className={`card-badge-top-left ${product.badge.includes('-') ? 'red' : ''}`}>
             {product.badge}
           </span>
-        )}
+        ) : null}
         
         <button
           onClick={() => toggleWishlist(product.id)}
@@ -55,7 +59,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </h3>
         </Link>
 
-        <div style={{ display: 'flex', alignItems: 'baseline' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
           <span className="product-card-price">{formatVND(product.price)}</span>
           {product.originalPrice && product.originalPrice > product.price && (
             <span className="product-card-original-price">{formatVND(product.originalPrice)}</span>
@@ -72,9 +76,10 @@ export default function ProductCard({ product }: ProductCardProps) {
           </Link>
           <button
             onClick={() => addToCart(product, 1)}
-            className="btn-card-add-cart"
-            title="Thêm vào giỏ hàng"
+            className={`btn-card-add-cart ${product.stock <= 0 ? 'disabled' : ''}`}
+            title={product.stock <= 0 ? 'Sản phẩm đã hết hàng' : 'Thêm vào giỏ hàng'}
             type="button"
+            disabled={product.stock <= 0}
           >
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />

@@ -54,6 +54,7 @@ export type OrderStatus = 'PROCESSING' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED';
 
 export interface Order {
   id: string;
+  userId?: string;
   customerName: string;
   phone: string;
   email?: string;

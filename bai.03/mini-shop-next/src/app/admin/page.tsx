@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useShop } from '@/context/ShopContext';
 import { useToast } from '@/context/ToastContext';
-import { Product, OrderStatus } from '@/types';
+import { Product, Order, OrderStatus } from '@/types';
 import { formatVND } from '@/utils/format';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminTopBar from '@/components/admin/AdminTopBar';
@@ -13,6 +13,7 @@ import MetricCard from '@/components/admin/MetricCard';
 import SalesChart from '@/components/admin/SalesChart';
 import OrdersDonutChart from '@/components/admin/OrdersDonutChart';
 import ProductFormModal from '@/components/admin/ProductFormModal';
+import OrderDetailModal from '@/components/admin/OrderDetailModal';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -24,6 +25,12 @@ export default function AdminPage() {
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productSearch, setProductSearch] = useState('');
+
+  // Order management states
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
 
   // RBAC Route Guard: Chỉ cho phép tài khoản có vai ADMIN truy cập
   useEffect(() => {
@@ -63,6 +70,16 @@ export default function AdminPage() {
     return p.name.toLowerCase().includes(q) || p.categoryName.toLowerCase().includes(q);
   });
 
+  // Filtered orders for orders tab
+  const filteredOrders = orders.filter(o => {
+    const matchesStatus = orderStatusFilter === 'ALL' || o.status === orderStatusFilter;
+    const matchesSearch = !orderSearch.trim() ||
+      o.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      o.customerName.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      o.phone.includes(orderSearch);
+    return matchesStatus && matchesSearch;
+  });
+
   const handleOpenAddModal = () => {
     setEditingProduct(null);
     setProductModalOpen(true);
@@ -82,7 +99,15 @@ export default function AdminPage() {
 
   const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
     await updateOrderStatus(orderId, status);
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder(prev => prev ? { ...prev, status } : null);
+    }
     showToast(`Đã cập nhật đơn #${orderId} sang trạng thái mới.`);
+  };
+
+  const handleViewOrderDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setOrderModalOpen(true);
   };
 
   return (
@@ -346,94 +371,165 @@ export default function AdminPage() {
              ================================================================ */}
           {currentTab === 'orders' && (
             <div className="admin-card-box">
-              <div className="admin-card-header">
+              <div className="admin-card-header" style={{ flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <h2 style={{ fontSize: '16px', fontWeight: 800 }}>Danh Sách Đơn Hàng Mới Nhất</h2>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cập nhật trạng thái giao hàng và thanh toán</span>
+                  <h2 style={{ fontSize: '16px', fontWeight: 800 }}>Danh Sách Đơn Hàng ({filteredOrders.length} đơn)</h2>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cập nhật trạng thái giao hàng, kiểm tra chi tiết và thanh toán</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  {/* Status Pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-page)', padding: '4px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-light)' }}>
+                    {[
+                      { id: 'ALL', label: 'Tất cả' },
+                      { id: 'PROCESSING', label: 'Đang xử lý' },
+                      { id: 'SHIPPING', label: 'Đang giao' },
+                      { id: 'COMPLETED', label: 'Hoàn thành' },
+                      { id: 'CANCELLED', label: 'Đã hủy' }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setOrderStatusFilter(tab.id)}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          border: 'none',
+                          background: orderStatusFilter === tab.id ? 'var(--primary)' : 'transparent',
+                          color: orderStatusFilter === tab.id ? '#ffffff' : 'var(--text-body)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Search Input */}
+                  <div style={{ position: 'relative', width: '220px' }}>
+                    <input
+                      type="text"
+                      placeholder="Tìm mã đơn, tên, SĐT..."
+                      value={orderSearch}
+                      onChange={(e) => setOrderSearch(e.target.value)}
+                      className="form-control"
+                      style={{ fontSize: '12.5px', padding: '6px 12px' }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Mã đơn</th>
-                    <th>Khách hàng</th>
-                    <th>Số điện thoại & Địa chỉ</th>
-                    <th>Sản phẩm đã đặt</th>
-                    <th>Tổng tiền</th>
-                    <th>Hình thức TT</th>
-                    <th>Trạng thái đơn</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map(order => (
-                    <tr key={order.id}>
-                      <td style={{ fontWeight: 800, color: 'var(--primary)' }}>#{order.id}</td>
-                      <td>
-                        <div style={{ fontWeight: 700 }}>{order.customerName}</div>
-                        <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{order.email || order.createdAt}</div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{order.phone}</div>
-                        <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', maxWidth: '200px' }}>{order.address}</div>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '12px' }}>
-                          {order.items.map((item, idx) => (
-                            <div key={idx}>
-                              • {item.quantity}x {item.name}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>
-                        {formatVND(order.totalAmount)}
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '12px', fontWeight: 600, background: 'var(--bg-page)', padding: '4px 8px', borderRadius: '4px' }}>
-                          {order.paymentMethod}
-                        </span>
-                      </td>
-                      <td>
-                        <select
-                          className="form-control"
-                          value={order.status}
-                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value as OrderStatus)}
-                          style={{
-                            fontSize: '12.5px',
-                            fontWeight: 700,
-                            padding: '6px 10px',
-                            color:
-                              order.status === 'COMPLETED'
-                                ? 'var(--primary)'
-                                : order.status === 'SHIPPING'
-                                ? '#0284c7'
-                                : order.status === 'CANCELLED'
-                                ? 'var(--accent-red)'
-                                : '#d97706'
-                          }}
-                        >
-                          <option value="PROCESSING">Đang xử lý</option>
-                          <option value="SHIPPING">Đang giao</option>
-                          <option value="COMPLETED">Hoàn thành</option>
-                          <option value="CANCELLED">Đã hủy</option>
-                        </select>
-                      </td>
+              {filteredOrders.length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
+                  Không tìm thấy đơn hàng nào phù hợp.
+                </div>
+              ) : (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Mã đơn</th>
+                      <th>Khách hàng</th>
+                      <th>Số điện thoại &amp; Địa chỉ</th>
+                      <th>Sản phẩm đã đặt</th>
+                      <th>Tổng tiền</th>
+                      <th>Hình thức TT</th>
+                      <th>Trạng thái đơn</th>
+                      <th style={{ textAlign: 'right' }}>Thao tác</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map(order => (
+                      <tr key={order.id}>
+                        <td style={{ fontWeight: 800, color: 'var(--primary)' }}>
+                          #{order.id}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 700 }}>{order.customerName}</div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{order.email || order.createdAt}</div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600 }}>{order.phone}</div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', maxWidth: '200px' }}>{order.address}</div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '12px' }}>
+                            {order.items.map((item, idx) => (
+                              <div key={idx}>
+                                • {item.quantity}x {item.name}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>
+                          {formatVND(order.totalAmount)}
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '12px', fontWeight: 600, background: 'var(--bg-page)', padding: '4px 8px', borderRadius: '4px' }}>
+                            {order.paymentMethod}
+                          </span>
+                        </td>
+                        <td>
+                          <select
+                            className="form-control"
+                            value={order.status}
+                            onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value as OrderStatus)}
+                            style={{
+                              fontSize: '12.5px',
+                              fontWeight: 700,
+                              padding: '6px 10px',
+                              color:
+                                order.status === 'COMPLETED'
+                                  ? 'var(--primary)'
+                                  : order.status === 'SHIPPING'
+                                  ? '#0284c7'
+                                  : order.status === 'CANCELLED'
+                                  ? 'var(--accent-red)'
+                                  : '#d97706'
+                            }}
+                          >
+                            <option value="PROCESSING">Đang xử lý</option>
+                            <option value="SHIPPING">Đang giao</option>
+                            <option value="COMPLETED">Hoàn thành</option>
+                            <option value="CANCELLED">Đã hủy</option>
+                          </select>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleViewOrderDetails(order)}
+                            className="btn btn-sm btn-outline"
+                            title="Xem chi tiết đơn hàng"
+                          >
+                            👁️ Chi tiết
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
 
         </div>
       </div>
 
-      {/* Modal CRUD Form */}
+      {/* Modal CRUD Product Form */}
       <ProductFormModal
         isOpen={productModalOpen}
         productToEdit={editingProduct}
         onClose={() => setProductModalOpen(false)}
+      />
+
+      {/* Modal Order Details */}
+      <OrderDetailModal
+        isOpen={orderModalOpen}
+        order={selectedOrder}
+        onClose={() => setOrderModalOpen(false)}
+        onUpdateStatus={handleUpdateOrderStatus}
       />
     </div>
   );
