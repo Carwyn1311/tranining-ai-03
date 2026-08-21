@@ -38,12 +38,39 @@ export const updateSession = async (request: NextRequest) => {
   );
 
   // Refresh auth token and get user
-  const { data: { user } } = await supabase.auth.getUser();
+  let activeRole: string | null = null;
+  let isAuthenticated = false;
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      isAuthenticated = true;
+      activeRole = user.user_metadata?.role || (user.email?.toLowerCase().startsWith("admin@") || user.email?.toLowerCase().includes("admin") ? "ADMIN" : "CUSTOMER");
+    }
+  } catch (err) {
+    // Supabase auth error fallback
+  }
+
+  // Fallback to minishop_user cookie
+  if (!isAuthenticated) {
+    const userCookie = request.cookies.get("minishop_user");
+    if (userCookie?.value) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(userCookie.value));
+        if (parsed && parsed.email) {
+          isAuthenticated = true;
+          activeRole = parsed.role || (parsed.email?.toLowerCase().startsWith("admin@") || parsed.email?.toLowerCase().includes("admin") ? "ADMIN" : "CUSTOMER");
+        }
+      } catch (e) {
+        // parse error
+      }
+    }
+  }
 
   // Route Guard: Chặn khu vực quản trị /admin
   const pathname = request.nextUrl.pathname;
   if (pathname.startsWith("/admin")) {
-    if (!user) {
+    if (!isAuthenticated) {
       // Chưa đăng nhập -> Chuyển về trang đăng nhập
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", "/admin");
@@ -51,8 +78,7 @@ export const updateSession = async (request: NextRequest) => {
     }
 
     // Đã đăng nhập nhưng không có vai ADMIN -> Chặn và chuyển về login với thông báo
-    const role = user.user_metadata?.role || (user.email?.toLowerCase().startsWith("admin@") ? "ADMIN" : "CUSTOMER");
-    if (role !== "ADMIN") {
+    if (activeRole !== "ADMIN") {
       const unauthorizedUrl = new URL("/login", request.url);
       unauthorizedUrl.searchParams.set("error", "unauthorized");
       return NextResponse.redirect(unauthorizedUrl);

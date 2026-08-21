@@ -107,6 +107,35 @@ function LoginContent() {
           </button>
         </form>
 
+        {/* Demo Accounts Quick Box */}
+        <div className="demo-accounts-box">
+          <div className="demo-accounts-title">⚡ Chọn tài khoản test nhanh:</div>
+          <div className="demo-btns-grid">
+            <button
+              type="button"
+              className="btn-quick-fill"
+              onClick={() => {
+                setEmail('user@minishop.vn');
+                setPassword('123456');
+                setErrorMessage(null);
+              }}
+            >
+              👤 Khách hàng (User)
+            </button>
+            <button
+              type="button"
+              className="btn-quick-fill"
+              onClick={() => {
+                setEmail('admin@minishop.vn');
+                setPassword('admin123');
+                setErrorMessage(null);
+              }}
+            >
+              🛡️ Quản trị viên (Admin)
+            </button>
+          </div>
+        </div>
+
         <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '13.5px', color: 'var(--text-muted)' }}>
           Chưa có tài khoản?{' '}
           <Link href="/register" style={{ color: 'var(--primary)', fontWeight: 700 }}>
