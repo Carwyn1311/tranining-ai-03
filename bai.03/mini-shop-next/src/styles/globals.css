@@ -1635,30 +1635,80 @@ img {
 /* ==========================================================================
    ADMIN STYLES
    ========================================================================== */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+  position: relative;
+}
+
 .admin-layout-container {
   display: flex;
   min-height: 100vh;
-  background: #f4f7f6;
+  background: #f8fafc;
 }
 
 .admin-sidebar {
-  width: 240px;
+  width: 250px;
   background: #ffffff;
   border-right: 1px solid var(--border-light);
-  padding: 24px 16px;
+  padding: 20px 14px;
   display: flex;
   flex-direction: column;
   position: fixed;
   top: 0;
   bottom: 0;
   left: 0;
+  z-index: 1000;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
 }
 
-.admin-main-wrapper {
-  margin-left: 240px;
+.admin-sidebar.collapsed {
+  transform: translateX(-100%);
+  box-shadow: none;
+}
+
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .admin-sidebar-backdrop.active {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+  }
+}
+
+.admin-main {
+  margin-left: 250px;
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-main.sidebar-collapsed {
+  margin-left: 0;
+}
+
+@media (max-width: 1024px) {
+  .admin-main {
+    margin-left: 0 !important;
+  }
+}
+
+.admin-main-wrapper {
+  margin-left: 250px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .admin-topbar {
@@ -1668,7 +1718,10 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 28px;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .admin-content-area {

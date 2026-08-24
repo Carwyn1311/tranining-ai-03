@@ -42,6 +42,7 @@ export default function AdminPage() {
   const { showToast } = useToast();
 
   const [currentTab, setCurrentTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Product modal states
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -270,11 +271,20 @@ export default function AdminPage() {
   return (
     <div className="admin-layout">
       {/* Sidebar Navigation */}
-      <AdminSidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
+      <AdminSidebar
+        currentTab={currentTab}
+        onSelectTab={setCurrentTab}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(prev => !prev)}
+      />
 
       {/* Main Content Area */}
-      <div className="admin-main">
-        <AdminTopBar title="Bảng Điều Khiển Quản Trị Hệ Thống" />
+      <div className={`admin-main ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
+        <AdminTopBar
+          title="Bảng Điều Khiển Quản Trị Hệ Thống"
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
+        />
 
         <div className="admin-content-container">
 
