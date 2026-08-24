@@ -13,7 +13,8 @@ import {
   mapProductToSupabase,
   mapCategoryToSupabase,
   mapOrderToSupabase,
-  mapReviewToSupabase
+  mapReviewToSupabase,
+  mapCouponToSupabase
 } from '@/utils/supabase/mapper';
 
 interface ShopContextType {
@@ -34,7 +35,11 @@ interface ShopContextType {
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
   addReview: (productId: number, reviewData: { userName: string; userEmail?: string; rating: number; comment: string }) => Promise<void>;
+  deleteReview: (reviewId: string) => Promise<void>;
   getProductReviews: (productId: number) => Review[];
+  addCoupon: (coupon: Coupon) => Promise<void>;
+  updateCoupon: (code: string, updated: Partial<Coupon>) => Promise<void>;
+  deleteCoupon: (code: string) => Promise<void>;
   refreshData: () => Promise<void>;
 }
 
@@ -120,10 +125,13 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       // 5. Fetch Coupons
       const { data: coupData, error: coupError } = await supabase
         .from('coupons')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (!coupError && coupData && coupData.length > 0) {
         setCoupons(coupData.map(mapSupabaseCoupon));
+      } else {
+        setCoupons(DEFAULT_COUPONS);
       }
     } catch (error) {
       console.error('Error fetching data from Supabase:', error);
@@ -131,6 +139,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       setProducts(DEFAULT_PRODUCTS);
       setOrders(DEFAULT_ORDERS);
       setReviews(DEFAULT_REVIEWS);
+      setCoupons(DEFAULT_COUPONS);
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +177,6 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         const avgRating = prodReviews.reduce((sum, r) => sum + r.rating, 0) / prodReviews.length;
         const newCount = prodReviews.length;
         
-        // Update remote Supabase product rating & reviews_count
         supabase.from('products').update({ rating: Number(avgRating.toFixed(1)), reviews_count: newCount }).eq('id', productId).then();
 
         return {
@@ -185,6 +193,67 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       await supabase.from('reviews').insert([row]);
     } catch (err) {
       console.error('Supabase addReview error:', err);
+    }
+  };
+
+  const deleteReview = async (reviewId: string) => {
+    const target = reviews.find(r => r.id === reviewId);
+    setReviews(prev => prev.filter(r => r.id !== reviewId));
+
+    if (target) {
+      // Recalculate product rating after deletion
+      setProducts(prev => prev.map(p => {
+        if (p.id === target.productId) {
+          const remaining = reviews.filter(r => r.productId === target.productId && r.id !== reviewId);
+          const avgRating = remaining.length > 0 ? remaining.reduce((sum, r) => sum + r.rating, 0) / remaining.length : 5.0;
+          const newCount = remaining.length;
+          supabase.from('products').update({ rating: Number(avgRating.toFixed(1)), reviews_count: newCount }).eq('id', target.productId).then();
+          return { ...p, rating: Number(avgRating.toFixed(1)), reviewsCount: newCount };
+        }
+        return p;
+      }));
+    }
+
+    try {
+      await supabase.from('reviews').delete().eq('id', reviewId);
+    } catch (err) {
+      console.error('Supabase deleteReview error:', err);
+    }
+  };
+
+  const addCoupon = async (couponData: Coupon) => {
+    const newCoupon: Coupon = {
+      ...couponData,
+      code: couponData.code.toUpperCase().trim()
+    };
+    setCoupons(prev => [newCoupon, ...prev.filter(c => c.code !== newCoupon.code)]);
+
+    try {
+      const row = mapCouponToSupabase(newCoupon);
+      await supabase.from('coupons').insert([row]);
+    } catch (err) {
+      console.error('Supabase addCoupon error:', err);
+    }
+  };
+
+  const updateCoupon = async (code: string, updated: Partial<Coupon>) => {
+    setCoupons(prev => prev.map(c => c.code === code ? { ...c, ...updated } : c));
+
+    try {
+      const row = mapCouponToSupabase({ ...updated, code });
+      await supabase.from('coupons').update(row).eq('code', code);
+    } catch (err) {
+      console.error('Supabase updateCoupon error:', err);
+    }
+  };
+
+  const deleteCoupon = async (code: string) => {
+    setCoupons(prev => prev.filter(c => c.code !== code));
+
+    try {
+      await supabase.from('coupons').delete().eq('code', code);
+    } catch (err) {
+      console.error('Supabase deleteCoupon error:', err);
     }
   };
 
@@ -386,7 +455,11 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         updateOrderStatus,
         cancelOrder,
         addReview,
+        deleteReview,
         getProductReviews,
+        addCoupon,
+        updateCoupon,
+        deleteCoupon,
         refreshData: fetchData
       }}
     >

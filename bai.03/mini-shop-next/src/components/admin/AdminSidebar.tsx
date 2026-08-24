@@ -58,6 +58,25 @@ export default function AdminSidebar({ currentTab, onSelectTab }: AdminSidebarPr
       )
     },
     {
+      id: 'coupons',
+      label: 'Quản lý mã giảm giá',
+      icon: (
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+          <line x1="7" y1="7" x2="7.01" y2="7" />
+        </svg>
+      )
+    },
+    {
+      id: 'reviews',
+      label: 'Quản lý đánh giá',
+      icon: (
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      )
+    },
+    {
       id: 'users',
       label: 'Quản lý tài khoản',
       icon: (
@@ -84,7 +103,7 @@ export default function AdminSidebar({ currentTab, onSelectTab }: AdminSidebarPr
           <span>MiniShop Admin</span>
         </Link>
         <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-          Hệ thống quản trị Next.js
+          Hệ thống quản trị 6 thực thể
         </span>
       </div>
 
@@ -106,7 +125,9 @@ export default function AdminSidebar({ currentTab, onSelectTab }: AdminSidebarPr
               color: currentTab === item.id ? 'var(--primary)' : 'var(--text-body)',
               background: currentTab === item.id ? 'var(--primary-light)' : 'transparent',
               textAlign: 'left',
-              transition: 'var(--transition)'
+              transition: 'var(--transition)',
+              border: 'none',
+              cursor: 'pointer'
             }}
           >
             {item.icon}

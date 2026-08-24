@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useShop } from '@/context/ShopContext';
 import { useToast } from '@/context/ToastContext';
-import { Product, Category, User, Order, OrderStatus } from '@/types';
+import { Product, Category, User, Order, OrderStatus, Review, Coupon } from '@/types';
 import { formatVND } from '@/utils/format';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminTopBar from '@/components/admin/AdminTopBar';
@@ -15,12 +15,30 @@ import OrdersDonutChart from '@/components/admin/OrdersDonutChart';
 import ProductFormModal from '@/components/admin/ProductFormModal';
 import CategoryFormModal from '@/components/admin/CategoryFormModal';
 import UserFormModal from '@/components/admin/UserFormModal';
+import CouponFormModal from '@/components/admin/CouponFormModal';
 import OrderDetailModal from '@/components/admin/OrderDetailModal';
 
 export default function AdminPage() {
   const router = useRouter();
   const { currentUser, users, isLoading: isAuthLoading, deleteUser } = useAuth();
-  const { products, categories, orders, deleteProduct, deleteCategory, updateOrderStatus } = useShop();
+  const {
+    products,
+    categories,
+    orders,
+    reviews,
+    coupons,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    updateOrderStatus,
+    addCoupon,
+    updateCoupon,
+    deleteCoupon,
+    deleteReview
+  } = useShop();
   const { showToast } = useToast();
 
   const [currentTab, setCurrentTab] = useState('dashboard');
@@ -46,6 +64,16 @@ export default function AdminPage() {
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
+
+  // Coupon modal states
+  const [couponModalOpen, setCouponModalOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [couponSearch, setCouponSearch] = useState('');
+  const [couponStatusFilter, setCouponStatusFilter] = useState('ALL');
+
+  // Review management states
+  const [reviewSearch, setReviewSearch] = useState('');
+  const [reviewRatingFilter, setReviewRatingFilter] = useState('ALL');
 
   // RBAC Route Guard: Chỉ cho phép tài khoản có vai ADMIN truy cập
   useEffect(() => {
@@ -73,6 +101,8 @@ export default function AdminPage() {
   const totalCategories = categories.filter(c => c.id !== 'all').length;
   const totalUsersCount = users.length;
   const totalOrdersCount = orders.length;
+  const totalReviewsCount = reviews.length;
+  const totalCouponsCount = coupons.length;
   const totalRevenue = orders
     .filter(o => o.status !== 'CANCELLED')
     .reduce((sum, o) => sum + o.totalAmount, 0);
@@ -113,752 +143,1038 @@ export default function AdminPage() {
     return matchesStatus && matchesSearch;
   });
 
-  // Product handlers
-  const handleOpenAddProductModal = () => {
+  // Filtered coupons
+  const filteredCoupons = coupons.filter(c => {
+    const matchesStatus = couponStatusFilter === 'ALL' || (couponStatusFilter === 'ACTIVE' ? c.isActive : !c.isActive);
+    const matchesSearch = !couponSearch.trim() ||
+      c.code.toLowerCase().includes(couponSearch.toLowerCase()) ||
+      (c.description && c.description.toLowerCase().includes(couponSearch.toLowerCase()));
+    return matchesStatus && matchesSearch;
+  });
+
+  // Filtered reviews
+  const filteredReviews = reviews.filter(r => {
+    const matchesRating = reviewRatingFilter === 'ALL' || String(r.rating) === reviewRatingFilter;
+    const matchesSearch = !reviewSearch.trim() ||
+      r.userName.toLowerCase().includes(reviewSearch.toLowerCase()) ||
+      (r.userEmail && r.userEmail.toLowerCase().includes(reviewSearch.toLowerCase())) ||
+      r.comment.toLowerCase().includes(reviewSearch.toLowerCase()) ||
+      String(r.productId).includes(reviewSearch);
+    return matchesRating && matchesSearch;
+  });
+
+  // Handlers for products
+  const handleOpenAddProduct = () => {
     setEditingProduct(null);
     setProductModalOpen(true);
   };
 
-  const handleOpenEditProductModal = (p: Product) => {
+  const handleOpenEditProduct = (p: Product) => {
     setEditingProduct(p);
     setProductModalOpen(true);
   };
 
-  const handleDeleteProduct = async (p: Product) => {
-    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm "${p.name}" (Mã #${p.id}) không?`)) {
-      await deleteProduct(p.id);
-      showToast(`Đã xóa sản phẩm "${p.name}".`);
+  const handleDeleteProduct = (id: number, name: string) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${name}"?`)) {
+      deleteProduct(id);
+      showToast(`Đã xóa sản phẩm <strong>${name}</strong>.`);
     }
   };
 
-  // Category handlers
-  const handleOpenAddCategoryModal = () => {
+  // Handlers for categories
+  const handleOpenAddCategory = () => {
     setEditingCategory(null);
     setCategoryModalOpen(true);
   };
 
-  const handleOpenEditCategoryModal = (c: Category) => {
+  const handleOpenEditCategory = (c: Category) => {
     setEditingCategory(c);
     setCategoryModalOpen(true);
   };
 
-  const handleDeleteCategory = async (c: Category) => {
-    if (c.id === 'all') {
-      showToast('Không thể xóa danh mục mặc định "Tất cả"!', 'danger');
+  const handleDeleteCategory = (id: string, name: string) => {
+    if (id === 'all') {
+      showToast('Không thể xóa danh mục mặc định!', 'danger');
       return;
     }
-    const hasProducts = products.some(p => p.category === c.id);
-    const msg = hasProducts
-      ? `Danh mục "${c.name}" đang có sản phẩm liên kết. Bạn có chắc chắn muốn xóa không?`
-      : `Bạn có chắc chắn muốn xóa danh mục "${c.name}"?`;
-
-    if (confirm(msg)) {
-      await deleteCategory(c.id);
-      showToast(`Đã xóa danh mục "${c.name}".`);
+    if (window.confirm(`Bạn có chắc chắn muốn xóa danh mục "${name}"?`)) {
+      deleteCategory(id);
+      showToast(`Đã xóa danh mục <strong>${name}</strong>.`);
     }
   };
 
-  // User handlers
-  const handleOpenAddUserModal = () => {
+  // Handlers for users
+  const handleOpenAddUser = () => {
     setEditingUser(null);
     setUserModalOpen(true);
   };
 
-  const handleOpenEditUserModal = (u: User) => {
+  const handleOpenEditUser = (u: User) => {
     setEditingUser(u);
     setUserModalOpen(true);
   };
 
-  const handleDeleteUser = async (u: User) => {
-    if (String(u.id) === String(currentUser.id)) {
-      showToast('Bạn không thể xóa tài khoản đang đăng nhập hiện tại!', 'danger');
+  const handleDeleteUser = (id: string | number, email: string) => {
+    if (email === currentUser?.email) {
+      showToast('Bạn không thể tự xóa tài khoản đang đăng nhập của chính mình!', 'danger');
       return;
     }
-    if (confirm(`Bạn có chắc chắn muốn xóa tài khoản "${u.name}" (${u.email})?`)) {
-      await deleteUser(u.id);
-      showToast(`Đã xóa tài khoản "${u.name}".`);
+    if (window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${email}"?`)) {
+      deleteUser(id);
+      showToast(`Đã xóa tài khoản <strong>${email}</strong>.`);
     }
   };
 
-  // Order handlers
-  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
-    await updateOrderStatus(orderId, status);
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder(prev => prev ? { ...prev, status } : null);
-    }
-    showToast(`Đã cập nhật đơn #${orderId} sang trạng thái mới.`);
+  // Handlers for coupons
+  const handleOpenAddCoupon = () => {
+    setEditingCoupon(null);
+    setCouponModalOpen(true);
   };
 
-  const handleViewOrderDetails = (order: Order) => {
+  const handleOpenEditCoupon = (c: Coupon) => {
+    setEditingCoupon(c);
+    setCouponModalOpen(true);
+  };
+
+  const handleDeleteCoupon = (code: string) => {
+    if (window.confirm(`Bạn có chắc muốn xóa mã giảm giá "${code}"?`)) {
+      deleteCoupon(code);
+      showToast(`Đã xóa mã giảm giá <strong>${code}</strong>.`);
+    }
+  };
+
+  const handleToggleCoupon = (coupon: Coupon) => {
+    updateCoupon(coupon.code, { isActive: !coupon.isActive });
+    showToast(`Đã ${!coupon.isActive ? 'kích hoạt' : 'tạm dừng'} mã <strong>${coupon.code}</strong>.`);
+  };
+
+  // Handlers for reviews
+  const handleDeleteReview = (id: string, author: string) => {
+    if (window.confirm(`Bạn có chắc muốn xóa đánh giá của "${author}"?`)) {
+      deleteReview(id);
+      showToast(`Đã xóa đánh giá của <strong>${author}</strong>.`);
+    }
+  };
+
+  // Handlers for orders
+  const handleOpenOrderDetail = (order: Order) => {
     setSelectedOrder(order);
     setOrderModalOpen(true);
   };
 
+  const handleStatusChange = (orderId: string, status: OrderStatus) => {
+    updateOrderStatus(orderId, status);
+    showToast(`Đã cập nhật trạng thái đơn #${orderId}`);
+  };
+
   return (
-    <div className="admin-layout-container">
-      {/* Sidebar */}
+    <div className="admin-layout">
+      {/* Sidebar Navigation */}
       <AdminSidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
 
-      {/* Main Wrapper */}
-      <div className="admin-main-wrapper">
-        <AdminTopBar
-          title={
-            currentTab === 'dashboard'
-              ? 'Tổng Quan Hoạt Động Cửa Hàng'
-              : currentTab === 'products'
-              ? 'Quản Lý Danh Sách Sản Phẩm'
-              : currentTab === 'categories'
-              ? 'Quản Lý Danh Mục Ngành Hàng'
-              : currentTab === 'orders'
-              ? 'Quản Lý Danh Sách Đơn Hàng'
-              : 'Quản Lý Danh Sách Tài Khoản & Phân Quyền'
-          }
-        />
+      {/* Main Content Area */}
+      <div className="admin-main">
+        <AdminTopBar title="Bảng Điều Khiển Quản Trị Hệ Thống" />
 
-        <div className="admin-content-area">
-          
-          {/* ================================================================
-              TAB 1: DASHBOARD
-             ================================================================ */}
+        <div className="admin-content-container">
+
+          {/* ======================================================== */}
+          {/* TAB 1: TỔNG QUAN (DASHBOARD) */}
+          {/* ======================================================== */}
           {currentTab === 'dashboard' && (
-            <>
-              {/* 4 Metric Cards */}
-              <div className="metrics-grid-4">
-                <MetricCard
-                  title="Tổng Sản Phẩm"
-                  value={totalProducts}
-                  subtext="Đang hoạt động trên shop"
-                  icon={(
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--primary)" strokeWidth="2">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                    </svg>
-                  )}
-                />
+            <div>
+              <div style={{ marginBottom: '24px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Tổng Quan Hoạt Động Cửa Hàng
+                </h1>
+                <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Theo dõi số liệu kinh doanh, đơn hàng thực tế và trạng thái kho hàng
+                </p>
+              </div>
 
-                <MetricCard
-                  title="Danh Mục Hàng"
-                  value={totalCategories}
-                  subtext="Ngành hàng nội thất & decor"
-                  iconBg="var(--secondary-light)"
-                  icon={(
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--secondary)" strokeWidth="2">
-                      <rect x="3" y="3" width="7" height="7" />
-                      <rect x="14" y="3" width="7" height="7" />
-                      <rect x="14" y="14" width="7" height="7" />
-                      <rect x="3" y="14" width="7" height="7" />
-                    </svg>
-                  )}
-                />
-
-                <MetricCard
-                  title="Tổng Đơn Hàng"
-                  value={totalOrdersCount}
-                  subtext="Ghi nhận trên hệ thống"
-                  iconBg="var(--accent-amber-light)"
-                  icon={(
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--accent-amber)" strokeWidth="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                    </svg>
-                  )}
-                />
-
+              {/* 6 Top Metric Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '28px' }}>
                 <MetricCard
                   title="Doanh Thu Tích Lũy"
                   value={formatVND(totalRevenue)}
-                  subtext="Đơn hoàn thành & đang giao"
-                  iconBg="var(--primary-light)"
-                  icon={(
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--primary)" strokeWidth="2">
-                      <line x1="12" y1="1" x2="12" y2="23" />
-                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                    </svg>
-                  )}
+                  subtext="Từ tất cả đơn hàng hợp lệ"
+                  icon={<span>💰</span>}
+                />
+                <MetricCard
+                  title="Tổng Đơn Hàng"
+                  value={totalOrdersCount}
+                  subtext="Đơn đặt qua hệ thống"
+                  icon={<span>📦</span>}
+                />
+                <MetricCard
+                  title="Tổng Sản Phẩm"
+                  value={totalProducts}
+                  subtext={`${totalCategories} danh mục hàng`}
+                  icon={<span>🏷️</span>}
+                />
+                <MetricCard
+                  title="Khách Hàng & User"
+                  value={totalUsersCount}
+                  subtext="Tài khoản trong hệ thống"
+                  icon={<span>👥</span>}
+                />
+                <MetricCard
+                  title="Mã Khuyến Mãi"
+                  value={totalCouponsCount}
+                  subtext={`${coupons.filter(c => c.isActive).length} mã đang hoạt động`}
+                  icon={<span>🎟️</span>}
+                />
+                <MetricCard
+                  title="Đánh Giá Khách Hàng"
+                  value={totalReviewsCount}
+                  subtext="Nhận xét từ người mua"
+                  icon={<span>⭐</span>}
                 />
               </div>
 
-              {/* 2 Charts in Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.8fr', gap: '24px' }}>
-                
-                {/* Sales Chart Box */}
-                <div className="admin-card-box">
-                  <div className="admin-card-header">
-                    <div>
-                      <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-                        Biểu Đồ Doanh Thu 7 Ngày Gần Nhất
-                      </h2>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Xu hướng bán lẻ đồ nội thất và decor</span>
-                    </div>
-                  </div>
+              {/* Charts Section */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', marginBottom: '28px' }}>
+                <div style={{ background: '#ffffff', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
                   <SalesChart />
                 </div>
-
-                {/* Donut Chart Box */}
-                <div className="admin-card-box">
-                  <div className="admin-card-header">
-                    <div>
-                      <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-                        Trạng Thái Đơn Hàng
-                      </h2>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tỷ lệ hoàn thành đơn</span>
-                    </div>
-                  </div>
+                <div style={{ background: '#ffffff', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
                   <OrdersDonutChart />
                 </div>
-
               </div>
 
-              {/* Low stock alerts table */}
-              <div className="admin-card-box">
-                <div className="admin-card-header">
-                  <div>
-                    <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-                      Cảnh Báo Tồn Kho Ít (≤ 10 sản phẩm)
-                    </h2>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cần lên kế hoạch nhập hàng thêm</span>
-                  </div>
-                  <button onClick={() => setCurrentTab('products')} className="btn btn-sm btn-outline">
-                    Xem tất cả &rarr;
+              {/* Low Stock Warning Table */}
+              <div style={{ background: '#ffffff', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>⚠️</span> Cảnh Báo Tồn Kho Sắp Hết ({lowStockProducts.length} món &le; 10 sp)
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentTab('products')}
+                    className="btn btn-outline btn-sm"
+                  >
+                    Xem tất cả sản phẩm &rarr;
                   </button>
                 </div>
 
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Sản phẩm</th>
-                      <th>Danh mục</th>
-                      <th>Giá bán</th>
-                      <th>Tồn kho</th>
-                      <th style={{ textAlign: 'right' }}>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lowStockProducts.map(p => (
-                      <tr key={p.id}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <img src={p.image} alt={p.name} style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover' }} />
-                            <span style={{ fontWeight: 600 }}>{p.name}</span>
-                          </div>
-                        </td>
-                        <td>{p.categoryName}</td>
-                        <td style={{ fontWeight: 700 }}>{formatVND(p.price)}</td>
-                        <td>
-                          <span style={{ color: 'var(--accent-red)', fontWeight: 800 }}>
-                            {p.stock} cái
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            onClick={() => handleOpenEditProductModal(p)}
-                            className="btn btn-sm btn-outline"
-                          >
-                            Cập nhật kho
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {lowStockProducts.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13.5px' }}>
+                    ✅ Tồn kho dồi dào, không có sản phẩm nào sắp hết hàng!
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Ảnh</th>
+                          <th>Tên sản phẩm</th>
+                          <th>Danh mục</th>
+                          <th>Giá bán</th>
+                          <th>Tồn kho</th>
+                          <th>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lowStockProducts.map(p => (
+                          <tr key={p.id}>
+                            <td>
+                              <img src={p.image} alt={p.name} style={{ width: '38px', height: '38px', objectFit: 'cover', borderRadius: '4px' }} />
+                            </td>
+                            <td style={{ fontWeight: 700 }}>{p.name}</td>
+                            <td>{p.categoryName}</td>
+                            <td>{formatVND(p.price)}</td>
+                            <td>
+                              <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: '12px' }}>
+                                Còn {p.stock} cái
+                              </span>
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditProduct(p)}
+                                className="btn btn-outline btn-sm"
+                              >
+                                Nhập kho
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            </>
+
+            </div>
           )}
 
-          {/* ================================================================
-              TAB 2: PRODUCTS CRUD
-             ================================================================ */}
+          {/* ======================================================== */}
+          {/* TAB 2: QUẢN LÝ SẢN PHẨM (PRODUCTS) */}
+          {/* ======================================================== */}
           {currentTab === 'products' && (
-            <div className="admin-card-box">
-              <div className="admin-card-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    type="text"
-                    placeholder="Tìm sản phẩm theo tên..."
-                    className="form-control"
-                    style={{ width: '280px' }}
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                  />
-                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    Tổng cộng: <strong>{filteredProducts.length}</strong> sản phẩm
-                  </span>
-                </div>
-
-                <button onClick={handleOpenAddProductModal} className="btn btn-primary">
-                  + Thêm Sản Phẩm Mới
-                </button>
-              </div>
-
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '60px' }}>ID</th>
-                    <th>Hình ảnh &amp; Tên sản phẩm</th>
-                    <th>Danh mục</th>
-                    <th>Giá niêm yết</th>
-                    <th>Tồn kho</th>
-                    <th>Huy hiệu</th>
-                    <th style={{ textAlign: 'right' }}>Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map(p => (
-                    <tr key={p.id}>
-                      <td style={{ color: 'var(--text-muted)' }}>#{p.id}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <img src={p.image} alt={p.name} style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
-                          <div>
-                            <div style={{ fontWeight: 700 }}>{p.name}</div>
-                            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{p.shortDesc}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{p.categoryName}</td>
-                      <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{formatVND(p.price)}</td>
-                      <td>
-                        <span style={{ fontWeight: 700, color: p.stock <= 10 ? 'var(--accent-red)' : 'var(--text-main)' }}>
-                          {p.stock}
-                        </span>
-                      </td>
-                      <td>
-                        {p.badge && (
-                          <span style={{ fontSize: '11px', fontWeight: 700, background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {p.badge}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px' }}>
-                          <button
-                            onClick={() => handleOpenEditProductModal(p)}
-                            className="btn btn-sm btn-outline"
-                            title="Chỉnh sửa"
-                          >
-                            ✏️ Sửa
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(p)}
-                            className="btn btn-sm btn-outline"
-                            style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red-light)' }}
-                            title="Xóa"
-                          >
-                            🗑️ Xóa
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* ================================================================
-              TAB 3: CATEGORIES CRUD
-             ================================================================ */}
-          {currentTab === 'categories' && (
-            <div className="admin-card-box">
-              <div className="admin-card-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    type="text"
-                    placeholder="Tìm danh mục theo tên hoặc ID..."
-                    className="form-control"
-                    style={{ width: '280px' }}
-                    value={categorySearch}
-                    onChange={(e) => setCategorySearch(e.target.value)}
-                  />
-                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    Tổng cộng: <strong>{filteredCategories.length}</strong> danh mục
-                  </span>
-                </div>
-
-                <button onClick={handleOpenAddCategoryModal} className="btn btn-primary">
-                  + Thêm Danh Mục Mới
-                </button>
-              </div>
-
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '120px' }}>Mã định danh (Slug)</th>
-                    <th>Biểu tượng &amp; Tên danh mục</th>
-                    <th>Số lượng sản phẩm</th>
-                    <th style={{ textAlign: 'right' }}>Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCategories.map(c => (
-                    <tr key={c.id}>
-                      <td>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 600, background: 'var(--bg-page)', padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border-light)' }}>
-                          {c.id}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '20px' }}>{c.icon || '📦'}</span>
-                          <span style={{ fontWeight: 700 }}>{c.name}</span>
-                          {c.id === 'all' && (
-                            <span style={{ fontSize: '11px', background: 'var(--bg-muted)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-muted)' }}>
-                              Mặc định
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                          {c.count || 0} sản phẩm
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {c.id !== 'all' && (
-                          <div style={{ display: 'inline-flex', gap: '6px' }}>
-                            <button
-                              onClick={() => handleOpenEditCategoryModal(c)}
-                              className="btn btn-sm btn-outline"
-                              title="Chỉnh sửa danh mục"
-                            >
-                              ✏️ Sửa
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCategory(c)}
-                              className="btn btn-sm btn-outline"
-                              style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red-light)' }}
-                              title="Xóa danh mục"
-                            >
-                              🗑️ Xóa
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* ================================================================
-              TAB 4: ORDERS MANAGEMENT
-             ================================================================ */}
-          {currentTab === 'orders' && (
-            <div className="admin-card-box">
-              <div className="admin-card-header" style={{ flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
                 <div>
-                  <h2 style={{ fontSize: '16px', fontWeight: 800 }}>Danh Sách Đơn Hàng ({filteredOrders.length} đơn)</h2>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cập nhật trạng thái giao hàng, kiểm tra chi tiết và thanh toán</span>
+                  <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Quản Lý Sản Phẩm ({products.length})
+                  </h1>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Thêm mới, sửa đổi thông số kỹ thuật, giá bán và hình ảnh sản phẩm
+                  </p>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  {/* Status Pills */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-page)', padding: '4px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-light)' }}>
-                    {[
-                      { id: 'ALL', label: 'Tất cả' },
-                      { id: 'PROCESSING', label: 'Đang xử lý' },
-                      { id: 'SHIPPING', label: 'Đang giao' },
-                      { id: 'COMPLETED', label: 'Hoàn thành' },
-                      { id: 'CANCELLED', label: 'Đã hủy' }
-                    ].map(tab => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setOrderStatusFilter(tab.id)}
-                        style={{
-                          padding: '4px 12px',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          border: 'none',
-                          background: orderStatusFilter === tab.id ? 'var(--primary)' : 'transparent',
-                          color: orderStatusFilter === tab.id ? '#ffffff' : 'var(--text-body)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Search Input */}
-                  <div style={{ position: 'relative', width: '220px' }}>
-                    <input
-                      type="text"
-                      placeholder="Tìm mã đơn, tên, SĐT..."
-                      value={orderSearch}
-                      onChange={(e) => setOrderSearch(e.target.value)}
-                      className="form-control"
-                      style={{ fontSize: '12.5px', padding: '6px 12px' }}
-                    />
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddProduct}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <span>＋</span> Thêm sản phẩm mới
+                </button>
               </div>
 
-              {filteredOrders.length === 0 ? (
-                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-                  Không tìm thấy đơn hàng nào phù hợp.
-                </div>
-              ) : (
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Mã đơn</th>
-                      <th>Khách hàng</th>
-                      <th>Số điện thoại &amp; Địa chỉ</th>
-                      <th>Sản phẩm đã đặt</th>
-                      <th>Tổng tiền</th>
-                      <th>Hình thức TT</th>
-                      <th>Trạng thái đơn</th>
-                      <th style={{ textAlign: 'right' }}>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.map(order => (
-                      <tr key={order.id}>
-                        <td style={{ fontWeight: 800, color: 'var(--primary)' }}>
-                          #{order.id}
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 700 }}>{order.customerName}</div>
-                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{order.email || order.createdAt}</div>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{order.phone}</div>
-                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', maxWidth: '200px' }}>{order.address}</div>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '12px' }}>
-                            {order.items.map((item, idx) => (
-                              <div key={idx}>
-                                • {item.quantity}x {item.name}
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>
-                          {formatVND(order.totalAmount)}
-                        </td>
-                        <td>
-                          <span style={{ fontSize: '12px', fontWeight: 600, background: 'var(--bg-page)', padding: '4px 8px', borderRadius: '4px' }}>
-                            {order.paymentMethod}
-                          </span>
-                        </td>
-                        <td>
-                          <select
-                            className="form-control"
-                            value={order.status}
-                            onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value as OrderStatus)}
-                            style={{
-                              fontSize: '12.5px',
-                              fontWeight: 700,
-                              padding: '6px 10px',
-                              color:
-                                order.status === 'COMPLETED'
-                                  ? 'var(--primary)'
-                                  : order.status === 'SHIPPING'
-                                  ? '#0284c7'
-                                  : order.status === 'CANCELLED'
-                                  ? 'var(--accent-red)'
-                                  : '#d97706'
-                            }}
-                          >
-                            <option value="PROCESSING">Đang xử lý</option>
-                            <option value="SHIPPING">Đang giao</option>
-                            <option value="COMPLETED">Hoàn thành</option>
-                            <option value="CANCELLED">Đã hủy</option>
-                          </select>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleViewOrderDetails(order)}
-                            className="btn btn-sm btn-outline"
-                            title="Xem chi tiết đơn hàng"
-                          >
-                            👁️ Chi tiết
-                          </button>
-                        </td>
+              {/* Search bar */}
+              <div style={{ background: '#ffffff', padding: '14px 18px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <input
+                  type="text"
+                  placeholder="Tìm theo tên sản phẩm, danh mục..."
+                  className="form-control"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  style={{ maxWidth: '380px' }}
+                />
+              </div>
+
+              {/* Product Table */}
+              <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Hình ảnh</th>
+                        <th>Tên sản phẩm</th>
+                        <th>Danh mục</th>
+                        <th>Giá bán</th>
+                        <th>Tồn kho</th>
+                        <th>Đánh giá</th>
+                        <th style={{ textAlign: 'right' }}>Hành động</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                    </thead>
+                    <tbody>
+                      {filteredProducts.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                            Không tìm thấy sản phẩm nào khớp với tìm kiếm.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredProducts.map(p => (
+                          <tr key={p.id}>
+                            <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>#{p.id}</td>
+                            <td>
+                              <img src={p.image} alt={p.name} style={{ width: '42px', height: '42px', objectFit: 'cover', borderRadius: '6px' }} />
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{p.name}</div>
+                              {p.isFeatured && <span style={{ fontSize: '10px', background: 'var(--primary-light)', color: 'var(--primary)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Nổi bật</span>}
+                            </td>
+                            <td>{p.categoryName}</td>
+                            <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{formatVND(p.price)}</td>
+                            <td>
+                              <span style={{ fontWeight: 600, color: p.stock <= 5 ? '#dc2626' : 'var(--text-body)' }}>
+                                {p.stock} cái
+                              </span>
+                            </td>
+                            <td>
+                              ⭐ {p.rating} ({p.reviewsCount})
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditProduct(p)}
+                                  className="btn btn-outline btn-sm"
+                                >
+                                  Sửa
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteProduct(p.id, p.name)}
+                                  className="btn btn-outline btn-sm"
+                                  style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* ================================================================
-              TAB 5: USERS & ROLES MANAGEMENT
-             ================================================================ */}
-          {currentTab === 'users' && (
-            <div className="admin-card-box">
-              <div className="admin-card-header" style={{ flexWrap: 'wrap', gap: '16px' }}>
+          {/* ======================================================== */}
+          {/* TAB 3: QUẢN LÝ DANH MỤC (CATEGORIES) */}
+          {/* ======================================================== */}
+          {currentTab === 'categories' && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
                 <div>
-                  <h2 style={{ fontSize: '16px', fontWeight: 800 }}>Danh Sách Người Dùng &amp; Phân Quyền ({filteredUsers.length} tài khoản)</h2>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Quản trị viên có thể tạo tài khoản admin mới hoặc phân quyền khách hàng</span>
+                  <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Quản Lý Danh Mục Ngành Hàng ({categories.filter(c => c.id !== 'all').length})
+                  </h1>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Phân loại hàng hóa và cấu hình icon đại diện cho danh mục
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddCategory}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <span>＋</span> Thêm danh mục mới
+                </button>
+              </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  {/* Role filter buttons */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-page)', padding: '4px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-light)' }}>
-                    {[
-                      { id: 'ALL', label: 'Tất cả' },
-                      { id: 'ADMIN', label: '🛡️ Quản trị viên' },
-                      { id: 'CUSTOMER', label: '👤 Khách hàng' }
-                    ].map(tab => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setUserRoleFilter(tab.id)}
-                        style={{
-                          padding: '4px 12px',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          border: 'none',
-                          background: userRoleFilter === tab.id ? 'var(--primary)' : 'transparent',
-                          color: userRoleFilter === tab.id ? '#ffffff' : 'var(--text-body)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
+              {/* Category Table */}
+              <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Mã (ID / Slug)</th>
+                        <th>Icon</th>
+                        <th>Tên danh mục</th>
+                        <th>Số lượng sản phẩm</th>
+                        <th style={{ textAlign: 'right' }}>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {categories.filter(c => c.id !== 'all').map(c => (
+                        <tr key={c.id}>
+                          <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{c.id}</td>
+                          <td style={{ fontSize: '20px' }}>{c.icon || '📦'}</td>
+                          <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{c.name}</td>
+                          <td>
+                            <span style={{ padding: '2px 10px', background: '#f3f4f6', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>
+                              {c.count || 0} sản phẩm
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditCategory(c)}
+                                className="btn btn-outline btn-sm"
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(c.id, c.name)}
+                                className="btn btn-outline btn-sm"
+                                style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
 
-                  <input
-                    type="text"
-                    placeholder="Tìm theo tên, email, SĐT..."
-                    value={userSearch}
-                    onChange={(e) => setUserSearch(e.target.value)}
-                    className="form-control"
-                    style={{ width: '220px', fontSize: '12.5px', padding: '6px 12px' }}
-                  />
-
-                  <button onClick={handleOpenAddUserModal} className="btn btn-primary">
-                    + Thêm Tài Khoản Mới
-                  </button>
+          {/* ======================================================== */}
+          {/* TAB 4: QUẢN LÝ ĐƠN HÀNG (ORDERS) */}
+          {/* ======================================================== */}
+          {currentTab === 'orders' && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Quản Lý Đơn Hàng ({orders.length})
+                  </h1>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Theo dõi tiến độ giao nhận, thông tin khách hàng và trạng thái thanh toán
+                  </p>
                 </div>
               </div>
 
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '80px' }}>ID</th>
-                    <th>Họ và tên</th>
-                    <th>Email</th>
-                    <th>Số điện thoại</th>
-                    <th>Vai trò (Role)</th>
-                    <th style={{ textAlign: 'right' }}>Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map(user => (
-                    <tr key={user.id}>
-                      <td style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
-                        #{String(user.id).slice(0, 8)}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{
-                            width: '34px',
-                            height: '34px',
-                            borderRadius: '50%',
-                            background: user.role === 'ADMIN' ? 'var(--primary)' : '#0284c7',
-                            color: '#ffffff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: '13px'
-                          }}>
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 700 }}>
-                              {user.name}
-                              {String(user.id) === String(currentUser.id) && (
-                                <span style={{ marginLeft: '6px', fontSize: '11px', color: 'var(--primary)', fontWeight: 600 }}>
-                                  (Bạn)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{user.email}</td>
-                      <td>{user.phone || 'Chưa cập nhật'}</td>
-                      <td>
-                        {user.role === 'ADMIN' ? (
-                          <span style={{ fontSize: '11.5px', fontWeight: 800, background: 'var(--primary-light)', color: 'var(--primary)', padding: '4px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            🛡️ Quản Trị Viên (ADMIN)
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '11.5px', fontWeight: 700, background: 'var(--secondary-light)', color: 'var(--secondary)', padding: '4px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            👤 Khách Hàng (CUSTOMER)
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px' }}>
-                          <button
-                            onClick={() => handleOpenEditUserModal(user)}
-                            className="btn btn-sm btn-outline"
-                            title="Sửa quyền / thông tin"
-                          >
-                            ✏️ Sửa
-                          </button>
-                          {String(user.id) !== String(currentUser.id) && (
-                            <button
-                              onClick={() => handleDeleteUser(user)}
-                              className="btn btn-sm btn-outline"
-                              style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red-light)' }}
-                              title="Xóa tài khoản"
-                            >
-                              🗑️ Xóa
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+              {/* Status Filters & Search */}
+              <div style={{ background: '#ffffff', padding: '14px 18px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
+                  {[
+                    { id: 'ALL', label: 'Tất cả đơn' },
+                    { id: 'PROCESSING', label: 'Đang xử lý' },
+                    { id: 'SHIPPING', label: 'Đang giao' },
+                    { id: 'COMPLETED', label: 'Hoàn thành' },
+                    { id: 'CANCELLED', label: 'Đã hủy' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setOrderStatusFilter(tab.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        border: orderStatusFilter === tab.id ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                        background: orderStatusFilter === tab.id ? 'var(--primary-light)' : '#ffffff',
+                        color: orderStatusFilter === tab.id ? 'var(--primary)' : 'var(--text-body)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
                   ))}
-                </tbody>
-              </table>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Tìm mã đơn, tên khách, SĐT..."
+                  className="form-control"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  style={{ maxWidth: '280px' }}
+                />
+              </div>
+
+              {/* Orders Table */}
+              <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Mã đơn</th>
+                        <th>Khách hàng</th>
+                        <th>Số điện thoại</th>
+                        <th>Số món</th>
+                        <th>Tổng tiền</th>
+                        <th>Thanh toán</th>
+                        <th>Trạng thái</th>
+                        <th style={{ textAlign: 'right' }}>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                            Không có đơn hàng nào khớp với bộ lọc.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredOrders.map(o => (
+                          <tr key={o.id}>
+                            <td style={{ fontWeight: 700, color: 'var(--primary)' }}>#{o.id}</td>
+                            <td style={{ fontWeight: 600 }}>{o.customerName}</td>
+                            <td>{o.phone}</td>
+                            <td>{o.items.reduce((s, i) => s + i.quantity, 0)} món</td>
+                            <td style={{ fontWeight: 700 }}>{formatVND(o.totalAmount)}</td>
+                            <td>
+                              <span style={{ fontSize: '12px', padding: '2px 6px', background: '#f3f4f6', borderRadius: '4px' }}>
+                                {o.paymentMethod === 'COD' ? 'COD' : o.paymentMethod === 'BANK_TRANSFER' ? 'VietQR' : 'MoMo'}
+                              </span>
+                            </td>
+                            <td>
+                              <select
+                                value={o.status}
+                                onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  border: '1px solid var(--border-light)',
+                                  background: o.status === 'COMPLETED' ? '#ecfdf5' : o.status === 'CANCELLED' ? '#fef2f2' : o.status === 'SHIPPING' ? '#eff6ff' : '#fffbeb',
+                                  color: o.status === 'COMPLETED' ? '#059669' : o.status === 'CANCELLED' ? '#dc2626' : o.status === 'SHIPPING' ? '#2563eb' : '#d97706'
+                                }}
+                              >
+                                <option value="PROCESSING">Đang xử lý</option>
+                                <option value="SHIPPING">Đang giao</option>
+                                <option value="COMPLETED">Hoàn thành</option>
+                                <option value="CANCELLED">Đã hủy</option>
+                              </select>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenOrderDetail(o)}
+                                className="btn btn-outline btn-sm"
+                              >
+                                Chi tiết
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* TAB 5: QUẢN LÝ MÃ GIẢM GIÁ (COUPONS) */}
+          {/* ======================================================== */}
+          {currentTab === 'coupons' && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Quản Lý Mã Giảm Giá & Voucher ({coupons.length})
+                  </h1>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Thiết lập mã coupon khuyến mãi, giới hạn đơn hàng và mức chiết khấu
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddCoupon}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <span>＋</span> Tạo mã giảm giá mới
+                </button>
+              </div>
+
+              {/* Filter and search */}
+              <div style={{ background: '#ffffff', padding: '14px 18px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {[
+                    { id: 'ALL', label: 'Tất cả voucher' },
+                    { id: 'ACTIVE', label: 'Đang kích hoạt' },
+                    { id: 'INACTIVE', label: 'Tạm dừng' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setCouponStatusFilter(tab.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        border: couponStatusFilter === tab.id ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                        background: couponStatusFilter === tab.id ? 'var(--primary-light)' : '#ffffff',
+                        color: couponStatusFilter === tab.id ? 'var(--primary)' : 'var(--text-body)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Tìm mã voucher, mô tả..."
+                  className="form-control"
+                  value={couponSearch}
+                  onChange={(e) => setCouponSearch(e.target.value)}
+                  style={{ maxWidth: '280px' }}
+                />
+              </div>
+
+              {/* Coupon Table */}
+              <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Mã Voucher</th>
+                        <th>% Giảm giá</th>
+                        <th>Giảm tối đa</th>
+                        <th>Đơn tối thiểu</th>
+                        <th>Mô tả chương trình</th>
+                        <th>Trạng thái</th>
+                        <th style={{ textAlign: 'right' }}>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCoupons.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                            Không tìm thấy mã giảm giá nào.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredCoupons.map(c => (
+                          <tr key={c.code}>
+                            <td>
+                              <span style={{ fontWeight: 800, padding: '3px 8px', background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: '4px', border: '1px dashed var(--primary)' }}>
+                                {c.code}
+                              </span>
+                            </td>
+                            <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                              {c.discountPercent > 0 ? `${c.discountPercent}%` : 'Freeship'}
+                            </td>
+                            <td>{c.maxDiscount ? formatVND(c.maxDiscount) : 'Không giới hạn'}</td>
+                            <td>{c.minOrderValue ? formatVND(c.minOrderValue) : '0đ'}</td>
+                            <td style={{ fontSize: '13px', color: 'var(--text-body)', maxWidth: '220px' }}>{c.description || '-'}</td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCoupon(c)}
+                                style={{
+                                  padding: '3px 10px',
+                                  borderRadius: '12px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  background: c.isActive ? '#ecfdf5' : '#f3f4f6',
+                                  color: c.isActive ? '#059669' : '#6b7280'
+                                }}
+                              >
+                                {c.isActive ? '● Đang bật' : '○ Tắt'}
+                              </button>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditCoupon(c)}
+                                  className="btn btn-outline btn-sm"
+                                >
+                                  Sửa
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCoupon(c.code)}
+                                  className="btn btn-outline btn-sm"
+                                  style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* TAB 6: QUẢN LÝ ĐÁNH GIÁ (REVIEWS) */}
+          {/* ======================================================== */}
+          {currentTab === 'reviews' && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Quản Lý Đánh Giá & Nhận Xét ({reviews.length})
+                  </h1>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Kiểm duyệt bình luận và xếp hạng sao từ khách hàng mua sắm
+                  </p>
+                </div>
+              </div>
+
+              {/* Rating Filters & Search */}
+              <div style={{ background: '#ffffff', padding: '14px 18px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {[
+                    { id: 'ALL', label: 'Tất cả sao' },
+                    { id: '5', label: '5 sao ★' },
+                    { id: '4', label: '4 sao ★' },
+                    { id: '3', label: '3 sao ★' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setReviewRatingFilter(tab.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        border: reviewRatingFilter === tab.id ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                        background: reviewRatingFilter === tab.id ? 'var(--primary-light)' : '#ffffff',
+                        color: reviewRatingFilter === tab.id ? 'var(--primary)' : 'var(--text-body)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Tìm người gửi, email, nội dung..."
+                  className="form-control"
+                  value={reviewSearch}
+                  onChange={(e) => setReviewSearch(e.target.value)}
+                  style={{ maxWidth: '280px' }}
+                />
+              </div>
+
+              {/* Review Table */}
+              <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Sản phẩm</th>
+                        <th>Khách hàng</th>
+                        <th>Xếp hạng sao</th>
+                        <th>Nội dung đánh giá</th>
+                        <th>Thời gian</th>
+                        <th style={{ textAlign: 'right' }}>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredReviews.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                            Chưa có đánh giá nào khớp với tìm kiếm.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredReviews.map(r => {
+                          const prod = products.find(p => p.id === r.productId);
+                          return (
+                            <tr key={r.id}>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  {prod?.image && <img src={prod.image} alt={prod.name} style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px' }} />}
+                                  <div>
+                                    <div style={{ fontWeight: 700, fontSize: '13px' }}>{prod?.name || `SP #${r.productId}`}</div>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Mã #{r.productId}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <div style={{ fontWeight: 600 }}>{r.userName}</div>
+                                {r.userEmail && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{r.userEmail}</div>}
+                              </td>
+                              <td>
+                                <span style={{ color: '#f59e0b', fontSize: '14px' }}>
+                                  {'★'.repeat(r.rating)}
+                                  {'☆'.repeat(5 - r.rating)}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '13px', color: 'var(--text-body)', maxWidth: '280px' }}>
+                                {r.comment}
+                              </td>
+                              <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                {r.createdAt}
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteReview(r.id, r.userName)}
+                                  className="btn btn-outline btn-sm"
+                                  style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                                >
+                                  Xóa
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* TAB 7: QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN (USERS) */}
+          {/* ======================================================== */}
+          {currentTab === 'users' && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Quản Lý Tài Khoản & Phân Quyền ({users.length})
+                  </h1>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Xem danh sách người dùng, cấp quyền Quản trị viên (Admin) và quản lý tài khoản
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddUser}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <span>＋</span> Thêm tài khoản mới
+                </button>
+              </div>
+
+              {/* Role filter and search */}
+              <div style={{ background: '#ffffff', padding: '14px 18px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {[
+                    { id: 'ALL', label: 'Tất cả' },
+                    { id: 'ADMIN', label: 'Quản trị viên (Admin)' },
+                    { id: 'CUSTOMER', label: 'Khách hàng (Customer)' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setUserRoleFilter(tab.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        border: userRoleFilter === tab.id ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                        background: userRoleFilter === tab.id ? 'var(--primary-light)' : '#ffffff',
+                        color: userRoleFilter === tab.id ? 'var(--primary)' : 'var(--text-body)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Tìm theo họ tên, email, SĐT..."
+                  className="form-control"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  style={{ maxWidth: '280px' }}
+                />
+              </div>
+
+              {/* Users Table */}
+              <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Họ và tên</th>
+                        <th>Email đăng nhập</th>
+                        <th>Số điện thoại</th>
+                        <th>Vai trò (Phân quyền)</th>
+                        <th style={{ textAlign: 'right' }}>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                            Không tìm thấy tài khoản nào khớp với tìm kiếm.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredUsers.map(u => (
+                          <tr key={u.id}>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: u.role === 'ADMIN' ? 'var(--primary-light)' : '#f3f4f6', color: u.role === 'ADMIN' ? 'var(--primary)' : '#4b5563', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>
+                                  {u.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{u.name}</div>
+                              </div>
+                            </td>
+                            <td style={{ color: 'var(--text-body)' }}>{u.email}</td>
+                            <td>{u.phone || '-'}</td>
+                            <td>
+                              <span
+                                style={{
+                                  padding: '3px 10px',
+                                  borderRadius: '12px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  background: u.role === 'ADMIN' ? 'var(--primary-light)' : '#f3f4f6',
+                                  color: u.role === 'ADMIN' ? 'var(--primary)' : '#4b5563'
+                                }}
+                              >
+                                {u.role === 'ADMIN' ? '🛡️ Quản trị viên' : '👤 Khách hàng'}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditUser(u)}
+                                  className="btn btn-outline btn-sm"
+                                >
+                                  Sửa
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteUser(u.id, u.email)}
+                                  className="btn btn-outline btn-sm"
+                                  style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                                  disabled={u.email === currentUser.email}
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
         </div>
       </div>
 
-      {/* Modal CRUD Product Form */}
+      {/* Modals */}
       <ProductFormModal
         isOpen={productModalOpen}
-        productToEdit={editingProduct}
         onClose={() => setProductModalOpen(false)}
+        productToEdit={editingProduct}
       />
 
-      {/* Modal CRUD Category Form */}
       <CategoryFormModal
         isOpen={categoryModalOpen}
-        categoryToEdit={editingCategory}
         onClose={() => setCategoryModalOpen(false)}
+        categoryToEdit={editingCategory}
       />
 
-      {/* Modal CRUD User Form */}
       <UserFormModal
         isOpen={userModalOpen}
-        userToEdit={editingUser}
         onClose={() => setUserModalOpen(false)}
+        userToEdit={editingUser}
       />
 
-      {/* Modal Order Details */}
+      <CouponFormModal
+        isOpen={couponModalOpen}
+        onClose={() => setCouponModalOpen(false)}
+        editingCoupon={editingCoupon}
+        onSave={async (coupData) => {
+          if (editingCoupon) {
+            await updateCoupon(editingCoupon.code, coupData);
+          } else {
+            await addCoupon(coupData);
+          }
+        }}
+      />
+
       <OrderDetailModal
         isOpen={orderModalOpen}
-        order={selectedOrder}
         onClose={() => setOrderModalOpen(false)}
-        onUpdateStatus={handleUpdateOrderStatus}
+        order={selectedOrder}
+        onUpdateStatus={handleStatusChange}
       />
     </div>
   );

@@ -172,6 +172,19 @@ export function mapReviewToSupabase(review: Review) {
 }
 
 /**
+ * Convert application Coupon model to Supabase row format
+ */
+export function mapCouponToSupabase(coupon: Partial<Coupon> & { code: string }) {
+  const row: Record<string, any> = { code: coupon.code.toUpperCase().trim() };
+  if (coupon.discountPercent !== undefined) row.discount_percent = coupon.discountPercent;
+  if (coupon.maxDiscount !== undefined) row.max_discount = coupon.maxDiscount;
+  if (coupon.minOrderValue !== undefined) row.min_order_value = coupon.minOrderValue;
+  if (coupon.description !== undefined) row.description = coupon.description;
+  if (coupon.isActive !== undefined) row.is_active = coupon.isActive;
+  return row;
+}
+
+/**
  * Convert Supabase coupon row to application Coupon model
  */
 export function mapSupabaseCoupon(row: any): Coupon {
@@ -184,4 +197,6 @@ export function mapSupabaseCoupon(row: any): Coupon {
     isActive: Boolean(row.is_active)
   };
 }
+
+
 
