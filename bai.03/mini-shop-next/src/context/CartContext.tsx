@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, Product } from '@/types';
+import { CartItem, Product, Coupon } from '@/types';
+import { DEFAULT_COUPONS } from '@/data/initialData';
 import { useToast } from './ToastContext';
 
 interface CartContextType {
@@ -13,10 +14,11 @@ interface CartContextType {
   totalCount: number;
   subtotal: number;
   shippingFee: number;
-  discountRate: number;
   discountAmount: number;
   totalAmount: number;
+  appliedCoupon: Coupon | null;
   applyCoupon: (code: string) => boolean;
+  removeCoupon: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,16 +31,18 @@ export const useCart = () => {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [discountRate, setDiscountRate] = useState<number>(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('minishop_next_cart');
-      if (stored) setItems(JSON.parse(stored));
+      const storedCart = localStorage.getItem('minishop_next_cart');
+      if (storedCart) setItems(JSON.parse(storedCart));
+      const storedCoupon = localStorage.getItem('minishop_applied_coupon');
+      if (storedCoupon) setAppliedCoupon(JSON.parse(storedCoupon));
     } catch (e) {
-      console.error('Failed to load cart', e);
+      console.error('Failed to load cart from storage', e);
     }
     setIsLoaded(true);
   }, []);
@@ -51,6 +55,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       console.error('Failed to save cart', e);
     }
   }, [items, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      if (appliedCoupon) {
+        localStorage.setItem('minishop_applied_coupon', JSON.stringify(appliedCoupon));
+      } else {
+        localStorage.removeItem('minishop_applied_coupon');
+      }
+    } catch (e) {}
+  }, [appliedCoupon, isLoaded]);
 
   const addToCart = (product: Product, quantity = 1) => {
     if (product.stock !== undefined && product.stock <= 0) {
@@ -121,23 +136,51 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setItems([]);
+    setAppliedCoupon(null);
   };
 
-  const applyCoupon = (code: string) => {
+  const applyCoupon = (code: string): boolean => {
     const cleanCode = code.trim().toUpperCase();
-    if (cleanCode === 'MINISHOP10' || cleanCode === 'SALE10') {
-      setDiscountRate(0.1);
-      showToast('Áp dụng mã giảm giá 10% thành công!');
-      return true;
+    const found = DEFAULT_COUPONS.find(c => c.code.toUpperCase() === cleanCode && c.isActive);
+
+    if (!found) {
+      showToast('Mã ưu đãi không hợp lệ! Hãy thử "SAOVIET20", "MINI10", hoặc "FREESHIP"', 'danger');
+      return false;
     }
-    showToast('Mã giảm giá không hợp lệ! Hãy thử "MINISHOP10"', 'danger');
-    return false;
+
+    const currentSubtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    if (found.minOrderValue && currentSubtotal < found.minOrderValue) {
+      showToast(`Mã này chỉ áp dụng cho đơn hàng từ ${found.minOrderValue.toLocaleString('vi-VN')}đ trở lên!`, 'danger');
+      return false;
+    }
+
+    setAppliedCoupon(found);
+    showToast(`Áp dụng mã <strong>${found.code}</strong> thành công: ${found.description}!`);
+    return true;
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    showToast('Đã hủy bỏ mã giảm giá.');
   };
 
   const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const shippingFee = subtotal >= 500000 || subtotal === 0 ? 0 : 30000;
-  const discountAmount = Math.round(subtotal * discountRate);
+
+  // Standard shipping logic
+  let baseShipping = subtotal >= 500000 || subtotal === 0 ? 0 : 30000;
+  if (appliedCoupon?.code === 'FREESHIP' && subtotal >= (appliedCoupon.minOrderValue || 0)) {
+    baseShipping = 0;
+  }
+  const shippingFee = baseShipping;
+
+  // Discount calculation
+  let discountAmount = 0;
+  if (appliedCoupon && appliedCoupon.discountPercent > 0) {
+    const rawDiscount = Math.round((subtotal * appliedCoupon.discountPercent) / 100);
+    discountAmount = appliedCoupon.maxDiscount ? Math.min(rawDiscount, appliedCoupon.maxDiscount) : rawDiscount;
+  }
+
   const totalAmount = Math.max(0, subtotal + shippingFee - discountAmount);
 
   return (
@@ -151,10 +194,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         totalCount,
         subtotal,
         shippingFee,
-        discountRate,
         discountAmount,
         totalAmount,
-        applyCoupon
+        appliedCoupon,
+        applyCoupon,
+        removeCoupon
       }}
     >
       {children}

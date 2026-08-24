@@ -1,5 +1,5 @@
 -- ==========================================================
--- BÀI 5: THIẾT LẬP CƠ SỞ DỮ LIỆU SUPABASE CHO MINI SHOP
+-- BÀI 5 & 7: THIẾT LẬP CƠ SỞ DỮ LIỆU SUPABASE TOÀN DIỆN CHO MINI SHOP
 -- ==========================================================
 
 -- 1. BẢNG DANH MỤC (categories)
@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS public.products (
 -- 3. BẢNG ĐƠN HÀNG (orders)
 CREATE TABLE IF NOT EXISTS public.orders (
     id TEXT PRIMARY KEY,
+    user_id TEXT,
     customer_name TEXT NOT NULL,
     phone TEXT NOT NULL,
     email TEXT,
@@ -44,14 +45,49 @@ CREATE TABLE IF NOT EXISTS public.orders (
     items JSONB NOT NULL DEFAULT '[]'::jsonb,
     total_amount NUMERIC NOT NULL,
     shipping_fee NUMERIC DEFAULT 0,
+    discount_amount NUMERIC DEFAULT 0,
+    coupon_code TEXT,
     status TEXT DEFAULT 'PROCESSING',
     status_text TEXT DEFAULT 'Đang xử lý',
     payment_method TEXT DEFAULT 'COD',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 4. BẢNG NGƯỜI DÙNG & PHÂN QUYỀN (users)
+CREATE TABLE IF NOT EXISTS public.users (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT,
+    address TEXT,
+    role TEXT NOT NULL DEFAULT 'CUSTOMER',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. BẢNG ĐÁNH GIÁ SẢN PHẨM (reviews)
+CREATE TABLE IF NOT EXISTS public.reviews (
+    id TEXT PRIMARY KEY,
+    product_id BIGINT REFERENCES public.products(id) ON DELETE CASCADE,
+    user_name TEXT NOT NULL,
+    user_email TEXT,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. BẢNG MÃ GIẢM GIÁ / KHUYẾN MÃI (coupons)
+CREATE TABLE IF NOT EXISTS public.coupons (
+    code TEXT PRIMARY KEY,
+    discount_percent NUMERIC NOT NULL DEFAULT 0,
+    max_discount NUMERIC,
+    min_order_value NUMERIC,
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ==========================================================
--- BÀI 7: THIẾT LẬP KHÓA AN TOÀN RLS (ROW LEVEL SECURITY)
+-- THIẾT LẬP KHÓA AN TOÀN RLS (ROW LEVEL SECURITY)
 -- ==========================================================
 
 -- 1. Hàm kiểm tra quyền Quản trị viên (Admin)
@@ -66,15 +102,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
--- 2. KÍCH HOẠT RLS CHO CẢ 3 BẢNG
+-- 2. KÍCH HOẠT RLS CHO CẢ 6 BẢNG
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 
 -- Cấp quyền cơ bản cho các vai trò
 GRANT ALL ON TABLE public.categories TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.products TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.orders TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.users TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.reviews TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.coupons TO anon, authenticated, service_role;
 
 -- Xóa các policy cũ nếu có
 DROP POLICY IF EXISTS "Public categories read" ON public.categories;
@@ -84,68 +126,66 @@ DROP POLICY IF EXISTS "Admin products manage" ON public.products;
 DROP POLICY IF EXISTS "Public orders insert" ON public.orders;
 DROP POLICY IF EXISTS "Admin orders manage" ON public.orders;
 DROP POLICY IF EXISTS "User orders read own" ON public.orders;
+DROP POLICY IF EXISTS "Admin users manage" ON public.users;
+DROP POLICY IF EXISTS "User users read own" ON public.users;
+DROP POLICY IF EXISTS "Public reviews read" ON public.reviews;
+DROP POLICY IF EXISTS "Public reviews insert" ON public.reviews;
+DROP POLICY IF EXISTS "Admin reviews manage" ON public.reviews;
+DROP POLICY IF EXISTS "Public coupons read" ON public.coupons;
+DROP POLICY IF EXISTS "Admin coupons manage" ON public.coupons;
 
 -- 3. POLICIES CHO BẢNG CATEGORIES (Danh mục)
--- Ai cũng xem được danh mục
-CREATE POLICY "Public categories read" 
-ON public.categories FOR SELECT 
-USING (true);
-
--- Chỉ Admin được thêm, sửa, xóa danh mục
-CREATE POLICY "Admin categories manage" 
-ON public.categories FOR ALL 
-USING (public.is_admin()) 
-WITH CHECK (public.is_admin());
+CREATE POLICY "Public categories read" ON public.categories FOR SELECT USING (true);
+CREATE POLICY "Admin categories manage" ON public.categories FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- 4. POLICIES CHO BẢNG PRODUCTS (Sản phẩm)
--- Ai cũng xem được danh sách và chi tiết sản phẩm
-CREATE POLICY "Public products read" 
-ON public.products FOR SELECT 
-USING (true);
-
--- Chỉ Admin được thêm, sửa, xóa sản phẩm
-CREATE POLICY "Admin products manage" 
-ON public.products FOR ALL 
-USING (public.is_admin()) 
-WITH CHECK (public.is_admin());
+CREATE POLICY "Public products read" ON public.products FOR SELECT USING (true);
+CREATE POLICY "Admin products manage" ON public.products FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- 5. POLICIES CHO BẢNG ORDERS (Đơn hàng)
--- Khách vãng lai và khách đăng nhập đều được tạo đơn hàng mới
-CREATE POLICY "Public orders insert" 
-ON public.orders FOR INSERT 
-WITH CHECK (true);
-
--- Admin xem và quản lý tất cả đơn hàng
-CREATE POLICY "Admin orders manage" 
-ON public.orders FOR ALL 
-USING (public.is_admin()) 
-WITH CHECK (public.is_admin());
-
--- Khách hàng đã đăng nhập xem được đơn hàng của chính mình
-CREATE POLICY "User orders read own" 
-ON public.orders FOR SELECT 
-USING (
+CREATE POLICY "Public orders insert" ON public.orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Admin orders manage" ON public.orders FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE POLICY "User orders read own" ON public.orders FOR SELECT USING (
   public.is_admin() 
   OR (auth.jwt() ->> 'email' = email)
 );
+
+-- 6. POLICIES CHO BẢNG USERS (Người dùng)
+CREATE POLICY "Admin users manage" ON public.users FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE POLICY "User users read own" ON public.users FOR SELECT USING (
+  public.is_admin() 
+  OR (auth.jwt() ->> 'email' = email)
+);
+
+-- 7. POLICIES CHO BẢNG REVIEWS (Đánh giá)
+CREATE POLICY "Public reviews read" ON public.reviews FOR SELECT USING (true);
+CREATE POLICY "Public reviews insert" ON public.reviews FOR INSERT WITH CHECK (true);
+CREATE POLICY "Admin reviews manage" ON public.reviews FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- 8. POLICIES CHO BẢNG COUPONS (Mã giảm giá)
+CREATE POLICY "Public coupons read" ON public.coupons FOR SELECT USING (is_active = true OR public.is_admin());
+CREATE POLICY "Admin coupons manage" ON public.coupons FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- ==========================================================
 -- ĐỔ DỮ LIỆU MẪU (SEED DATA)
 -- ==========================================================
 
 -- Xóa dữ liệu cũ nếu có để tránh trùng lặp
+TRUNCATE TABLE public.reviews CASCADE;
+TRUNCATE TABLE public.coupons CASCADE;
+TRUNCATE TABLE public.users CASCADE;
 TRUNCATE TABLE public.orders CASCADE;
 TRUNCATE TABLE public.products CASCADE;
 TRUNCATE TABLE public.categories CASCADE;
 
 -- Đổ dữ liệu Categories
-INSERT INTO public.categories (id, name, count) VALUES
-('furniture', 'Nội thất', 4),
-('decor', 'Đồ mỹ nghệ', 4),
-('craft', 'Đồ thủ công', 4),
-('lighting', 'Đèn & Ánh sáng', 2),
-('kitchen', 'Nhà bếp', 2),
-('storage', 'Lưu trữ', 2);
+INSERT INTO public.categories (id, name, count, icon) VALUES
+('furniture', 'Nội thất', 4, '🪑'),
+('decor', 'Đồ mỹ nghệ', 4, '🏺'),
+('craft', 'Đồ thủ công', 4, '🧵'),
+('lighting', 'Đèn & Ánh sáng', 2, '💡'),
+('kitchen', 'Nhà bếp', 2, '🍳'),
+('storage', 'Lưu trữ', 2, '📦');
 
 -- Đổ dữ liệu 12 Products
 INSERT INTO public.products (
@@ -381,6 +421,25 @@ INSERT INTO public.products (
     'Tiện ích', 
     '{"material": "Gỗ sồi tự nhiên", "color": "Gỗ tự nhiên vân sáng", "dimensions": "Dài 40cm x Rộng 25cm x Cao 4cm", "weight": "0.9 kg", "origin": "Việt Nam"}'::jsonb
 );
+
+-- Đổ dữ liệu Users mẫu
+INSERT INTO public.users (id, name, email, phone, role) VALUES
+('usr-001', 'Quản Trị Viên Sao Việt', 'admin@tinhocsaoviet.com', '0933108888', 'ADMIN'),
+('usr-002', 'Quản Trị Viên (MiniShop)', 'admin@minishop.vn', '0999888777', 'ADMIN'),
+('usr-003', 'Khách hàng Thân Thiết', 'user@minishop.vn', '0912345678', 'CUSTOMER');
+
+-- Đổ dữ liệu Reviews mẫu
+INSERT INTO public.reviews (id, product_id, user_name, user_email, rating, comment, created_at) VALUES
+('rev-001', 1, 'Hoàng Long', 'hoanglong@gmail.com', 5, 'Sofa rất êm ái, màu xám nhạt phong cách Bắc Âu nhìn rất sang trọng. Giao hàng cẩn thận đóng gói kỹ càng!', '2025-05-25 10:30:00+07'),
+('rev-002', 1, 'Thu Trang', 'thutrang.tran@gmail.com', 5, 'Khung gỗ chắc nịch, nệm đàn hồi tốt không bị lún xẹp. Rất ưng ý với mức giá này!', '2025-05-26 14:15:00+07'),
+('rev-003', 2, 'Văn Thắng', 'thang.van@gmail.com', 5, 'Bàn ăn gỗ sồi vân tự nhiên cực đẹp, bề mặt sơn PU mờ sờ rất mịn tay. Gia đình mình rất thích!', '2025-05-27 16:45:00+07'),
+('rev-004', 4, 'Minh Hằng', 'minhhang.decor@gmail.com', 5, 'Bình gốm mộc tráng men tuyệt đẹp, cắm hoa baby hay hoa khô bày phòng khách siêu xinh!', '2025-05-28 09:20:00+07');
+
+-- Đổ dữ liệu Coupons mẫu
+INSERT INTO public.coupons (code, discount_percent, max_discount, min_order_value, description, is_active) VALUES
+('SAOVIET20', 20, 500000, 500000, 'Giảm 20% tối đa 500.000đ cho đơn từ 500k từ Sao Việt', TRUE),
+('MINI10', 10, 200000, 200000, 'Giảm 10% tối đa 200.000đ cho mọi đơn hàng', TRUE),
+('FREESHIP', 0, 30000, 300000, 'Miễn phí vận chuyển toàn quốc cho đơn từ 300k', TRUE);
 
 -- Đổ dữ liệu Orders mẫu
 INSERT INTO public.orders (

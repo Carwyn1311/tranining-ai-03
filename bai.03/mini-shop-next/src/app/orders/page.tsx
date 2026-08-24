@@ -7,12 +7,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
 import { formatVND } from '@/utils/format';
-import { OrderStatus } from '@/types';
+import { OrderStatus, Order } from '@/types';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import EmptyState from '@/components/ui/EmptyState';
 
 export default function OrdersPage() {
-  const { orders } = useShop();
+  const { orders, cancelOrder } = useShop();
   const { currentUser } = useAuth();
   const { addToCart } = useCart();
   const { showToast } = useToast();
@@ -22,7 +22,6 @@ export default function OrdersPage() {
   // Filter orders for the user (if user logged in, match email; otherwise show all session orders)
   const userOrders = orders.filter(order => {
     if (currentUser?.email) {
-      // Match by email if exists, or show recently placed session orders
       return !order.email || order.email.toLowerCase() === currentUser.email.toLowerCase() || currentUser.role === 'ADMIN';
     }
     return true;
@@ -38,7 +37,7 @@ export default function OrdersPage() {
     return matchesStatus && matchesSearch;
   });
 
-  const handleReorder = (order: typeof orders[0]) => {
+  const handleReorder = (order: Order) => {
     let count = 0;
     order.items.forEach(item => {
       addToCart({
@@ -57,6 +56,17 @@ export default function OrdersPage() {
       count += item.quantity;
     });
     showToast(`Đã thêm lại <strong>${count} món</strong> từ đơn #${order.id} vào giỏ hàng!`);
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (window.confirm(`Bạn có chắc chắn muốn hủy đơn hàng #${orderId} không? Tồn kho sản phẩm sẽ được tự động hoàn trả lại.`)) {
+      try {
+        await cancelOrder(orderId);
+        showToast(`Đã hủy đơn hàng <strong>#${orderId}</strong> thành công!`);
+      } catch (err) {
+        showToast('Không thể hủy đơn hàng lúc này, vui lòng thử lại.', 'danger');
+      }
+    }
   };
 
   const getStatusBadgeClass = (status: OrderStatus) => {
@@ -172,7 +182,7 @@ export default function OrdersPage() {
                       • Ngày đặt: {order.createdAt}
                     </span>
                     <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                      • Thanh toán: {order.paymentMethod === 'COD' ? 'Tiền mặt (COD)' : order.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản QR' : 'Ví MoMo'}
+                      • Thanh toán: {order.paymentMethod === 'COD' ? 'Tiền mặt (COD)' : order.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản VietQR' : 'Ví MoMo'}
                     </span>
                   </div>
 
@@ -227,13 +237,25 @@ export default function OrdersPage() {
                       <strong>Người nhận:</strong> {order.customerName} ({order.phone}) | <strong>Giao tới:</strong> {order.address}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <div style={{ textAlign: 'right', marginRight: '8px' }}>
                         <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>Tổng thanh toán: </span>
                         <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)' }}>
                           {formatVND(order.totalAmount)}
                         </span>
                       </div>
+
+                      {/* Cancel Order Button if PROCESSING */}
+                      {order.status === 'PROCESSING' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCancelOrder(order.id)}
+                          className="btn btn-outline btn-sm"
+                          style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                        >
+                          Hủy đơn hàng
+                        </button>
+                      )}
 
                       <button
                         type="button"

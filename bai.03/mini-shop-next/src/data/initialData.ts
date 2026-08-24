@@ -1,4 +1,4 @@
-import { Product, Category, Order, User } from '@/types';
+import { Product, Category, Order, User, Review, Coupon } from '@/types';
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'all', name: 'Tất cả', count: 12 },
@@ -387,5 +387,73 @@ export const DEFAULT_ORDERS: Order[] = [
 
 export const DEFAULT_USERS: User[] = [
   { id: 1, name: 'Khách hàng Thân Thiết', email: 'user@minishop.vn', role: 'CUSTOMER', phone: '0912345678' },
-  { id: 2, name: 'Quản Trị Viên (Admin)', email: 'admin@minishop.vn', role: 'ADMIN', phone: '0999888777' }
+  { id: 2, name: 'Quản Trị Viên (MiniShop)', email: 'admin@minishop.vn', role: 'ADMIN', phone: '0999888777' },
+  { id: 3, name: 'Quản Trị Viên Sao Việt', email: 'admin@tinhocsaoviet.com', role: 'ADMIN', phone: '0933108888' }
 ];
+
+export const DEFAULT_REVIEWS: Review[] = [
+  {
+    id: 'rev-001',
+    productId: 1,
+    userName: 'Hoàng Long',
+    userEmail: 'hoanglong@gmail.com',
+    rating: 5,
+    comment: 'Sofa rất êm ái, màu xám nhạt phong cách Bắc Âu nhìn rất sang trọng. Giao hàng cẩn thận đóng gói kỹ càng!',
+    createdAt: '2025-05-25 10:30'
+  },
+  {
+    id: 'rev-002',
+    productId: 1,
+    userName: 'Thu Trang',
+    userEmail: 'thutrang.tran@gmail.com',
+    rating: 5,
+    comment: 'Khung gỗ chắc nịch, nệm đàn hồi tốt không bị lún xẹp. Rất ưng ý với mức giá này!',
+    createdAt: '2025-05-26 14:15'
+  },
+  {
+    id: 'rev-003',
+    productId: 2,
+    userName: 'Văn Thắng',
+    userEmail: 'thang.van@gmail.com',
+    rating: 5,
+    comment: 'Bàn ăn gỗ sồi vân tự nhiên cực đẹp, bề mặt sơn PU mờ sờ rất mịn tay. Gia đình mình rất thích!',
+    createdAt: '2025-05-27 16:45'
+  },
+  {
+    id: 'rev-004',
+    productId: 4,
+    userName: 'Minh Hằng',
+    userEmail: 'minhhang.decor@gmail.com',
+    rating: 5,
+    comment: 'Bình gốm mộc tráng men tuyệt đẹp, cắm hoa baby hay hoa khô bày phòng khách siêu xinh!',
+    createdAt: '2025-05-28 09:20'
+  }
+];
+
+export const DEFAULT_COUPONS: Coupon[] = [
+  {
+    code: 'SAOVIET20',
+    discountPercent: 20,
+    maxDiscount: 500000,
+    minOrderValue: 500000,
+    description: 'Giảm 20% tối đa 500.000đ cho đơn từ 500k từ Sao Việt',
+    isActive: true
+  },
+  {
+    code: 'MINI10',
+    discountPercent: 10,
+    maxDiscount: 200000,
+    minOrderValue: 200000,
+    description: 'Giảm 10% tối đa 200.000đ cho mọi đơn hàng',
+    isActive: true
+  },
+  {
+    code: 'FREESHIP',
+    discountPercent: 0,
+    maxDiscount: 30000,
+    minOrderValue: 300000,
+    description: 'Miễn phí vận chuyển toàn quốc cho đơn từ 300k',
+    isActive: true
+  }
+];
+

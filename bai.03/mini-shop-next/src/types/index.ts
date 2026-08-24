@@ -63,6 +63,8 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   shippingFee: number;
+  discountAmount?: number;
+  couponCode?: string;
   status: OrderStatus;
   statusText: string;
   paymentMethod: string;
@@ -74,5 +76,26 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  address?: string;
   role: 'CUSTOMER' | 'ADMIN';
+  createdAt?: string;
+}
+
+export interface Review {
+  id: string;
+  productId: number;
+  userName: string;
+  userEmail?: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface Coupon {
+  code: string;
+  discountPercent: number;
+  maxDiscount?: number;
+  minOrderValue?: number;
+  description: string;
+  isActive: boolean;
 }

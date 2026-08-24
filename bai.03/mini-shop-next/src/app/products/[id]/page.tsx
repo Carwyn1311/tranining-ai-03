@@ -12,6 +12,7 @@ import ImageGallery from '@/components/product/ImageGallery';
 import QuantitySelector from '@/components/product/QuantitySelector';
 import SpecsTable from '@/components/product/SpecsTable';
 import ProductCard from '@/components/product/ProductCard';
+import ProductReviews from '@/components/product/ProductReviews';
 import EmptyState from '@/components/ui/EmptyState';
 
 export default function ProductDetailPage() {
@@ -213,7 +214,10 @@ export default function ProductDetailPage() {
 
         </div>
 
-        {/* 4. Related Products Section */}
+        {/* 4. Customer Reviews Section */}
+        <ProductReviews productId={product.id} productName={product.name} />
+
+        {/* 5. Related Products Section */}
         {relatedProducts.length > 0 && (
           <section style={{ margin: '60px 0 30px', paddingTop: '40px', borderTop: '1px solid var(--border-light)' }}>
             <div className="section-header-flex">

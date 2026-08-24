@@ -1,0 +1,41 @@
+name: Supabase Database Migration CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'supabase/**'
+      - 'src/types/**'
+
+jobs:
+  deploy-schema:
+    name: Auto Apply Database Migrations to Supabase
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase Project & Push Migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          if [ -n "$PROJECT_ID" ] && [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "🚀 Linking project $PROJECT_ID..."
+            supabase link --project-ref "$PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+            echo "⚡ Pushing database migrations..."
+            supabase db push --password "$SUPABASE_DB_PASSWORD"
+            echo "✅ Schema successfully synchronized with Supabase DB!"
+          else
+            echo "⚠️ SUPABASE_PROJECT_ID or SUPABASE_ACCESS_TOKEN is not set in GitHub Secrets."
+            echo "Please configure SUPABASE_PROJECT_ID, SUPABASE_ACCESS_TOKEN, and SUPABASE_DB_PASSWORD in Repo Settings -> Secrets."
+          fi

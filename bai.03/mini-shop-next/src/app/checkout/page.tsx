@@ -12,7 +12,7 @@ import EmptyState from '@/components/ui/EmptyState';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, shippingFee, discountAmount, totalAmount, clearCart } = useCart();
+  const { items, subtotal, shippingFee, discountAmount, totalAmount, appliedCoupon, clearCart } = useCart();
   const { createOrder } = useShop();
   const { currentUser } = useAuth();
 
@@ -20,7 +20,7 @@ export default function CheckoutPage() {
     customerName: currentUser?.name || '',
     phone: currentUser?.phone || '',
     email: currentUser?.email || '',
-    address: '',
+    address: currentUser?.address || '',
     note: ''
   });
 
@@ -36,7 +36,8 @@ export default function CheckoutPage() {
         ...prev,
         customerName: prev.customerName || currentUser.name || '',
         phone: prev.phone || currentUser.phone || '',
-        email: prev.email || currentUser.email || ''
+        email: prev.email || currentUser.email || '',
+        address: prev.address || currentUser.address || ''
       }));
     }
   }, [currentUser]);
@@ -79,6 +80,8 @@ export default function CheckoutPage() {
         })),
         totalAmount,
         shippingFee,
+        discountAmount,
+        couponCode: appliedCoupon?.code,
         paymentMethod
       });
 
@@ -93,7 +96,7 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="checkout-page">
+    <div className="checkout-page" style={{ paddingBottom: '80px' }}>
       <Breadcrumb
         items={[
           { label: 'Giỏ hàng', href: '/cart' },
@@ -105,7 +108,7 @@ export default function CheckoutPage() {
         {/* Success Modal */}
         {createdOrderCode && (
           <div className="modal-backdrop">
-            <div className="modal-card" style={{ maxWidth: '480px' }}>
+            <div className="modal-card" style={{ maxWidth: '520px', textAlign: 'center' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M20 6L9 17l-5-5" />
@@ -117,18 +120,39 @@ export default function CheckoutPage() {
               </h2>
 
               <p style={{ fontSize: '14px', color: 'var(--text-body)', marginBottom: '12px' }}>
-                Cảm ơn bạn đã tin tưởng mua sắm tại Mini Shop. Đơn hàng đã được lưu vào hệ thống kho.
+                Cảm ơn bạn đã tin tưởng mua sắm tại Mini Shop. Đơn hàng đã được ghi nhận vào hệ thống kho.
               </p>
 
-              <div style={{ background: 'var(--bg-page)', border: '1px dashed var(--primary)', borderRadius: 'var(--radius-md)', padding: '12px', margin: '16px 0', fontSize: '14px' }}>
+              <div style={{ background: 'var(--bg-page)', border: '1px dashed var(--primary)', borderRadius: 'var(--radius-md)', padding: '14px', margin: '16px 0', fontSize: '14px', textAlign: 'left' }}>
                 <div>Mã đơn hàng: <strong style={{ color: 'var(--primary)' }}>#{createdOrderCode}</strong></div>
-                <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Tổng tiền: <strong>{formatVND(totalAmount)}</strong>
+                <div style={{ fontSize: '13px', color: 'var(--text-body)', marginTop: '4px' }}>
+                  Tổng thanh toán: <strong>{formatVND(totalAmount)}</strong>
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Phương thức: <strong>{paymentMethod === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản VietQR' : 'Ví MoMo'}</strong>
                 </div>
               </div>
 
+              {/* VietQR instructions if bank transfer */}
+              {paymentMethod === 'BANK_TRANSFER' && (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                    Quét mã VietQR để thanh toán nhanh 24/7
+                  </div>
+                  <img
+                    src={`https://img.vietqr.io/image/MB-0933108888-compact2.png?amount=${totalAmount}&addInfo=${createdOrderCode}`}
+                    alt="VietQR Payment"
+                    style={{ width: '190px', height: '190px', borderRadius: '8px', border: '1px solid #cbd5e1', margin: '0 auto 8px', display: 'block' }}
+                  />
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                    Ngân hàng Quân Đội (MB Bank) - STK: <strong>0933108888</strong><br />
+                    Chủ TK: <strong>CONG TY DAO TAO TIN HOC SAO VIET</strong>
+                  </div>
+                </div>
+              )}
+
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-                Chúng tôi sẽ liên hệ số điện thoại <strong>{formData.phone}</strong> để xác nhận và giao hàng trong thời gian sớm nhất.
+                Chúng tôi sẽ liên hệ số điện thoại <strong>{formData.phone}</strong> để xác nhận và điều phối giao hàng.
               </p>
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -171,7 +195,7 @@ export default function CheckoutPage() {
               </div>
 
               <div className="form-group">
-                <label>Số điện thoại *</label>
+                <label>Số điện thoại liên hệ *</label>
                 <input
                   type="tel"
                   className="form-control"
@@ -184,7 +208,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className="form-group">
-              <label>Địa chỉ Email (để nhận hóa đơn)</label>
+              <label>Địa chỉ Email (để nhận hóa đơn điện tử)</label>
               <input
                 type="email"
                 className="form-control"
@@ -250,7 +274,7 @@ export default function CheckoutPage() {
                 />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '14px' }}>Chuyển khoản Ngân hàng (VietQR 24/7)</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Quét mã QR qua ứng dụng ngân hàng, xác nhận tự động</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Quét mã QR qua ứng dụng ngân hàng, xác nhận tức thì</div>
                 </div>
               </label>
 
@@ -300,7 +324,7 @@ export default function CheckoutPage() {
 
             {discountAmount > 0 && (
               <div className="summary-row" style={{ color: 'var(--primary)' }}>
-                <span>Khuyến mãi:</span>
+                <span>Khuyến mãi ({appliedCoupon?.code}):</span>
                 <span style={{ fontWeight: 700 }}>-{formatVND(discountAmount)}</span>
               </div>
             )}
@@ -310,15 +334,19 @@ export default function CheckoutPage() {
               <span style={{ fontWeight: 600 }}>{shippingFee === 0 ? 'Miễn phí' : formatVND(shippingFee)}</span>
             </div>
 
-            <div className="summary-row total-row">
-              <span>Tổng thanh toán:</span>
-              <span className="total-amount">{formatVND(totalAmount)}</span>
+            <div className="summary-total-divider" />
+
+            <div className="summary-row summary-total-row">
+              <span style={{ fontSize: '16px', fontWeight: 800 }}>Tổng thanh toán:</span>
+              <span style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary)' }}>
+                {formatVND(totalAmount)}
+              </span>
             </div>
 
             <button 
               type="submit" 
               className="btn btn-primary btn-lg" 
-              style={{ width: '100%' }}
+              style={{ width: '100%', marginTop: '20px' }}
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Đang xử lý đặt hàng...' : 'Xác Nhận Đặt Hàng'}

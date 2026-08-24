@@ -110,29 +110,44 @@ function LoginContent() {
         {/* Demo Accounts Quick Box */}
         <div className="demo-accounts-box">
           <div className="demo-accounts-title">⚡ Chọn tài khoản test nhanh:</div>
-          <div className="demo-btns-grid">
+          <div className="demo-btns-grid" style={{ gridTemplateColumns: '1fr', gap: '8px' }}>
             <button
               type="button"
               className="btn-quick-fill"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px' }}
               onClick={() => {
-                setEmail('user@minishop.vn');
-                setPassword('123456');
-                setErrorMessage(null);
-              }}
-            >
-              👤 Khách hàng (User)
-            </button>
-            <button
-              type="button"
-              className="btn-quick-fill"
-              onClick={() => {
-                setEmail('admin@minishop.vn');
+                setEmail('admin@tinhocsaoviet.com');
                 setPassword('admin123');
                 setErrorMessage(null);
               }}
             >
-              🛡️ Quản trị viên (Admin)
+              <span style={{ fontWeight: 700 }}>🛡️ Admin Sao Việt (Toàn quyền)</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>admin@tinhocsaoviet.com</span>
             </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn-quick-fill"
+                onClick={() => {
+                  setEmail('admin@minishop.vn');
+                  setPassword('admin123');
+                  setErrorMessage(null);
+                }}
+              >
+                🛡️ Admin MiniShop
+              </button>
+              <button
+                type="button"
+                className="btn-quick-fill"
+                onClick={() => {
+                  setEmail('user@minishop.vn');
+                  setPassword('123456');
+                  setErrorMessage(null);
+                }}
+              >
+                👤 Khách hàng (User)
+              </button>
+            </div>
           </div>
         </div>
 

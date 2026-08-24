@@ -2,15 +2,20 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '@/types';
+import { DEFAULT_USERS } from '@/data/initialData';
 import { createClient } from '@/utils/supabase/client';
 import { useToast } from './ToastContext';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
+  users: User[];
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<User>;
+  addUser: (userData: Omit<User, 'id'> & { password?: string }) => Promise<User>;
+  updateUser: (id: string | number, updated: Partial<User>) => Promise<void>;
+  deleteUser: (id: string | number) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -47,6 +52,37 @@ function getStoredUserSession(): User | null {
   return null;
 }
 
+function getStoredUsersList(): User[] {
+  if (typeof window === 'undefined') return DEFAULT_USERS;
+  try {
+    const raw = localStorage.getItem('minishop_users_list');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Ensure default admin accounts always exist
+        const hasSaoVietAdmin = parsed.some((u: User) => u.email === 'admin@tinhocsaoviet.com');
+        const hasMiniShopAdmin = parsed.some((u: User) => u.email === 'admin@minishop.vn');
+        const list = [...parsed];
+        if (!hasSaoVietAdmin) {
+          list.push(DEFAULT_USERS[2]);
+        }
+        if (!hasMiniShopAdmin) {
+          list.push(DEFAULT_USERS[1]);
+        }
+        return list;
+      }
+    }
+  } catch (e) {}
+  return DEFAULT_USERS;
+}
+
+function saveUsersList(users: User[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('minishop_users_list', JSON.stringify(users));
+  } catch (e) {}
+}
+
 // Helper: Convert Supabase auth.users to App User Model
 function mapSupabaseAuthUser(supabaseUser: SupabaseAuthUser): User {
   const meta = supabaseUser.user_metadata || {};
@@ -64,6 +100,7 @@ function mapSupabaseAuthUser(supabaseUser: SupabaseAuthUser): User {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>(DEFAULT_USERS);
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
   const supabase = createClient();
@@ -71,6 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize and listen to Auth state changes
   useEffect(() => {
     let mounted = true;
+
+    // Load users list from storage
+    const storedUsers = getStoredUsersList();
+    setUsers(storedUsers);
 
     async function getInitialUser() {
       try {
@@ -117,11 +158,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<User> => {
     const trimmedEmail = email.trim().toLowerCase();
 
-    // 1. Check Demo Admin
+    // 1. Check Preconfigured Sao Viet Master Admin
+    if (trimmedEmail === 'admin@tinhocsaoviet.com' || (password === 'admin123' && trimmedEmail.includes('saoviet'))) {
+      const saoVietAdmin: User = {
+        id: 'admin-saoviet',
+        name: 'Quản Trị Viên Sao Việt',
+        email: 'admin@tinhocsaoviet.com',
+        phone: '0933108888',
+        role: 'ADMIN'
+      };
+      saveUserSession(saoVietAdmin);
+      setCurrentUser(saoVietAdmin);
+      showToast('Đăng nhập Quản trị viên Sao Việt thành công!');
+      return saoVietAdmin;
+    }
+
+    // 2. Check Preconfigured MiniShop Admin
     if (trimmedEmail === 'admin@minishop.vn' || trimmedEmail.startsWith('admin@') || (password === 'admin123' && trimmedEmail.includes('admin'))) {
       const adminUser: User = {
         id: 'admin-001',
-        name: 'Quản Trị Viên (Admin)',
+        name: 'Quản Trị Viên (MiniShop)',
         email: email.trim(),
         phone: '0999888777',
         role: 'ADMIN'
@@ -132,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return adminUser;
     }
 
-    // 2. Check Demo Customer
+    // 3. Check Demo Customer
     if (trimmedEmail === 'user@minishop.vn') {
       const customerUser: User = {
         id: 'user-001',
@@ -147,7 +203,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return customerUser;
     }
 
-    // 3. Try Supabase Auth
+    // 4. Check registered users list (e.g., custom admin or custom customers added in admin panel)
+    const existingInList = users.find(u => u.email.toLowerCase() === trimmedEmail);
+    if (existingInList) {
+      saveUserSession(existingInList);
+      setCurrentUser(existingInList);
+      showToast(existingInList.role === 'ADMIN' ? 'Đăng nhập Quản trị viên thành công!' : `Chào mừng ${existingInList.name} quay trở lại!`);
+      return existingInList;
+    }
+
+    // 5. Try Supabase Auth
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -165,8 +230,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn('Supabase auth attempt returned:', err);
     }
 
-    // 4. Graceful Fallback for registered / test accounts
-    const isAdmin = trimmedEmail.includes('admin');
+    // 6. Graceful Fallback for registered / test accounts
+    const isAdmin = trimmedEmail.includes('admin') || trimmedEmail.startsWith('admin@');
     const fallbackUser: User = {
       id: `usr-${Date.now()}`,
       name: email.trim().split('@')[0],
@@ -201,6 +266,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const user = mapSupabaseAuthUser(data.user);
         saveUserSession(user);
         setCurrentUser(user);
+        setUsers(prev => {
+          const updated = [...prev, user];
+          saveUsersList(updated);
+          return updated;
+        });
         showToast('Đăng ký tài khoản thành công!');
         return user;
       }
@@ -209,7 +279,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Graceful Fallback for instant client registration
-    const isAdmin = trimmedEmail.includes('admin');
+    const isAdmin = trimmedEmail.includes('admin') || trimmedEmail.startsWith('admin@');
     const newUser: User = {
       id: `usr-${Date.now()}`,
       name,
@@ -219,8 +289,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     saveUserSession(newUser);
     setCurrentUser(newUser);
+    setUsers(prev => {
+      const updated = [...prev, newUser];
+      saveUsersList(updated);
+      return updated;
+    });
     showToast('Đăng ký tài khoản thành công!');
     return newUser;
+  };
+
+  // Admin Action: Add New User / Admin
+  const addUser = async (userData: Omit<User, 'id'> & { password?: string }): Promise<User> => {
+    const newUser: User = {
+      id: `usr-${Date.now()}`,
+      name: userData.name,
+      email: userData.email.trim(),
+      phone: userData.phone || '',
+      role: userData.role
+    };
+
+    // Try to register in Supabase Auth if password is provided
+    if (userData.password) {
+      try {
+        await supabase.auth.signUp({
+          email: userData.email.trim(),
+          password: userData.password,
+          options: {
+            data: {
+              name: userData.name,
+              phone: userData.phone || '',
+              role: userData.role
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Supabase createUser error:', e);
+      }
+    }
+
+    setUsers(prev => {
+      const updated = [newUser, ...prev];
+      saveUsersList(updated);
+      return updated;
+    });
+
+    return newUser;
+  };
+
+  // Admin Action: Update User
+  const updateUser = async (id: string | number, updated: Partial<User>) => {
+    setUsers(prev => {
+      const updatedList = prev.map(u => (String(u.id) === String(id) ? { ...u, ...updated } : u));
+      saveUsersList(updatedList);
+      return updatedList;
+    });
+
+    // If updating current logged in user, refresh currentUser & session
+    if (currentUser && String(currentUser.id) === String(id)) {
+      const updatedCurrent = { ...currentUser, ...updated };
+      setCurrentUser(updatedCurrent);
+      saveUserSession(updatedCurrent);
+    }
+  };
+
+  // Admin Action: Delete User
+  const deleteUser = async (id: string | number) => {
+    // Prevent deleting current user
+    if (currentUser && String(currentUser.id) === String(id)) {
+      showToast('Không thể xóa tài khoản đang đăng nhập hiện tại!', 'danger');
+      return;
+    }
+
+    setUsers(prev => {
+      const updatedList = prev.filter(u => String(u.id) !== String(id));
+      saveUsersList(updatedList);
+      return updatedList;
+    });
   };
 
   // Logout
@@ -236,7 +380,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, isLoading, login, logout, register }}>
+    <AuthContext.Provider value={{
+      currentUser,
+      users,
+      isLoading,
+      login,
+      logout,
+      register,
+      addUser,
+      updateUser,
+      deleteUser
+    }}>
       {children}
     </AuthContext.Provider>
   );

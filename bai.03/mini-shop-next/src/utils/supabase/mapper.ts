@@ -1,4 +1,4 @@
-import { Product, Category, Order } from '@/types';
+import { Product, Category, Order, User, Review, Coupon } from '@/types';
 
 /**
  * Convert snake_case database rows from Supabase into application Product model
@@ -10,7 +10,7 @@ export function mapSupabaseProduct(row: any): Product {
     category: row.category || '',
     categoryName: row.category_name || '',
     price: Number(row.price || 0),
-    originalPrice: row.original_price ? Number(row.original_price) : undefined,
+    originalPrice: row.originalPrice ? Number(row.originalPrice) : (row.original_price ? Number(row.original_price) : undefined),
     image: row.image || '',
     gallery: Array.isArray(row.gallery) ? row.gallery : [],
     rating: Number(row.rating || 5),
@@ -35,6 +35,17 @@ export function mapSupabaseCategory(row: any): Category {
     count: Number(row.count || 0),
     icon: row.icon || undefined
   };
+}
+
+/**
+ * Convert application Category model to Supabase table row format
+ */
+export function mapCategoryToSupabase(category: Partial<Category> & { id: string }) {
+  const row: Record<string, any> = { id: category.id };
+  if (category.name !== undefined) row.name = category.name;
+  if (category.count !== undefined) row.count = category.count;
+  if (category.icon !== undefined) row.icon = category.icon;
+  return row;
 }
 
 /**
@@ -104,3 +115,73 @@ export function mapSupabaseOrder(row: any): Order {
     createdAt: row.created_at ? new Date(row.created_at).toISOString().replace('T', ' ').substring(0, 16) : ''
   };
 }
+
+/**
+ * Convert Supabase user / profile row to application User model
+ */
+export function mapSupabaseUser(row: any): User {
+  return {
+    id: row.id,
+    name: row.name || row.full_name || (row.email ? row.email.split('@')[0] : 'Người dùng'),
+    email: row.email || '',
+    phone: row.phone || '',
+    role: (row.role === 'ADMIN' || (row.email && row.email.toLowerCase().includes('admin'))) ? 'ADMIN' : 'CUSTOMER'
+  };
+}
+
+/**
+ * Convert application User model to Supabase table row format
+ */
+export function mapUserToSupabase(user: Partial<User> & { email: string }) {
+  const row: Record<string, any> = { email: user.email };
+  if (user.id !== undefined) row.id = user.id;
+  if (user.name !== undefined) row.name = user.name;
+  if (user.phone !== undefined) row.phone = user.phone;
+  if (user.role !== undefined) row.role = user.role;
+  return row;
+}
+
+/**
+ * Convert Supabase review row to application Review model
+ */
+export function mapSupabaseReview(row: any): Review {
+  return {
+    id: String(row.id),
+    productId: Number(row.product_id),
+    userName: row.user_name || 'Khách hàng',
+    userEmail: row.user_email || undefined,
+    rating: Number(row.rating || 5),
+    comment: row.comment || '',
+    createdAt: row.created_at ? new Date(row.created_at).toISOString().replace('T', ' ').substring(0, 16) : ''
+  };
+}
+
+/**
+ * Convert application Review model to Supabase row format
+ */
+export function mapReviewToSupabase(review: Review) {
+  return {
+    id: review.id,
+    product_id: review.productId,
+    user_name: review.userName,
+    user_email: review.userEmail || null,
+    rating: review.rating,
+    comment: review.comment,
+    created_at: new Date().toISOString()
+  };
+}
+
+/**
+ * Convert Supabase coupon row to application Coupon model
+ */
+export function mapSupabaseCoupon(row: any): Coupon {
+  return {
+    code: row.code,
+    discountPercent: Number(row.discount_percent || 0),
+    maxDiscount: row.max_discount ? Number(row.max_discount) : undefined,
+    minOrderValue: row.min_order_value ? Number(row.min_order_value) : undefined,
+    description: row.description || '',
+    isActive: Boolean(row.is_active)
+  };
+}
+

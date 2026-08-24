@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useShop } from '@/context/ShopContext';
 import { useToast } from '@/context/ToastContext';
-import { Product, Order, OrderStatus } from '@/types';
+import { Product, Category, User, Order, OrderStatus } from '@/types';
 import { formatVND } from '@/utils/format';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminTopBar from '@/components/admin/AdminTopBar';
@@ -13,18 +13,33 @@ import MetricCard from '@/components/admin/MetricCard';
 import SalesChart from '@/components/admin/SalesChart';
 import OrdersDonutChart from '@/components/admin/OrdersDonutChart';
 import ProductFormModal from '@/components/admin/ProductFormModal';
+import CategoryFormModal from '@/components/admin/CategoryFormModal';
+import UserFormModal from '@/components/admin/UserFormModal';
 import OrderDetailModal from '@/components/admin/OrderDetailModal';
 
 export default function AdminPage() {
   const router = useRouter();
-  const { currentUser, isLoading: isAuthLoading } = useAuth();
-  const { products, categories, orders, deleteProduct, updateOrderStatus } = useShop();
+  const { currentUser, users, isLoading: isAuthLoading, deleteUser } = useAuth();
+  const { products, categories, orders, deleteProduct, deleteCategory, updateOrderStatus } = useShop();
   const { showToast } = useToast();
 
   const [currentTab, setCurrentTab] = useState('dashboard');
+
+  // Product modal states
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productSearch, setProductSearch] = useState('');
+
+  // Category modal states
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categorySearch, setCategorySearch] = useState('');
+
+  // User modal states
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('ALL');
 
   // Order management states
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -56,6 +71,7 @@ export default function AdminPage() {
   // Total metrics
   const totalProducts = products.length;
   const totalCategories = categories.filter(c => c.id !== 'all').length;
+  const totalUsersCount = users.length;
   const totalOrdersCount = orders.length;
   const totalRevenue = orders
     .filter(o => o.status !== 'CANCELLED')
@@ -63,14 +79,31 @@ export default function AdminPage() {
 
   const lowStockProducts = products.filter(p => p.stock <= 10);
 
-  // Filtered products for products tab
+  // Filtered products
   const filteredProducts = products.filter(p => {
     if (!productSearch.trim()) return true;
     const q = productSearch.toLowerCase();
     return p.name.toLowerCase().includes(q) || p.categoryName.toLowerCase().includes(q);
   });
 
-  // Filtered orders for orders tab
+  // Filtered categories
+  const filteredCategories = categories.filter(c => {
+    if (!categorySearch.trim()) return true;
+    const q = categorySearch.toLowerCase();
+    return c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q);
+  });
+
+  // Filtered users
+  const filteredUsers = users.filter(u => {
+    const matchesRole = userRoleFilter === 'ALL' || u.role === userRoleFilter;
+    const matchesSearch = !userSearch.trim() ||
+      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+      (u.phone && u.phone.includes(userSearch));
+    return matchesRole && matchesSearch;
+  });
+
+  // Filtered orders
   const filteredOrders = orders.filter(o => {
     const matchesStatus = orderStatusFilter === 'ALL' || o.status === orderStatusFilter;
     const matchesSearch = !orderSearch.trim() ||
@@ -80,23 +113,74 @@ export default function AdminPage() {
     return matchesStatus && matchesSearch;
   });
 
-  const handleOpenAddModal = () => {
+  // Product handlers
+  const handleOpenAddProductModal = () => {
     setEditingProduct(null);
     setProductModalOpen(true);
   };
 
-  const handleOpenEditModal = (p: Product) => {
+  const handleOpenEditProductModal = (p: Product) => {
     setEditingProduct(p);
     setProductModalOpen(true);
   };
 
   const handleDeleteProduct = async (p: Product) => {
-    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm "${p.name}" (Mã #${p.id}) khỏi kho Supabase không?`)) {
+    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm "${p.name}" (Mã #${p.id}) không?`)) {
       await deleteProduct(p.id);
-      showToast(`Đã xóa sản phẩm "${p.name}" khỏi Supabase.`);
+      showToast(`Đã xóa sản phẩm "${p.name}".`);
     }
   };
 
+  // Category handlers
+  const handleOpenAddCategoryModal = () => {
+    setEditingCategory(null);
+    setCategoryModalOpen(true);
+  };
+
+  const handleOpenEditCategoryModal = (c: Category) => {
+    setEditingCategory(c);
+    setCategoryModalOpen(true);
+  };
+
+  const handleDeleteCategory = async (c: Category) => {
+    if (c.id === 'all') {
+      showToast('Không thể xóa danh mục mặc định "Tất cả"!', 'danger');
+      return;
+    }
+    const hasProducts = products.some(p => p.category === c.id);
+    const msg = hasProducts
+      ? `Danh mục "${c.name}" đang có sản phẩm liên kết. Bạn có chắc chắn muốn xóa không?`
+      : `Bạn có chắc chắn muốn xóa danh mục "${c.name}"?`;
+
+    if (confirm(msg)) {
+      await deleteCategory(c.id);
+      showToast(`Đã xóa danh mục "${c.name}".`);
+    }
+  };
+
+  // User handlers
+  const handleOpenAddUserModal = () => {
+    setEditingUser(null);
+    setUserModalOpen(true);
+  };
+
+  const handleOpenEditUserModal = (u: User) => {
+    setEditingUser(u);
+    setUserModalOpen(true);
+  };
+
+  const handleDeleteUser = async (u: User) => {
+    if (String(u.id) === String(currentUser.id)) {
+      showToast('Bạn không thể xóa tài khoản đang đăng nhập hiện tại!', 'danger');
+      return;
+    }
+    if (confirm(`Bạn có chắc chắn muốn xóa tài khoản "${u.name}" (${u.email})?`)) {
+      await deleteUser(u.id);
+      showToast(`Đã xóa tài khoản "${u.name}".`);
+    }
+  };
+
+  // Order handlers
   const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
     await updateOrderStatus(orderId, status);
     if (selectedOrder && selectedOrder.id === orderId) {
@@ -123,7 +207,11 @@ export default function AdminPage() {
               ? 'Tổng Quan Hoạt Động Cửa Hàng'
               : currentTab === 'products'
               ? 'Quản Lý Danh Sách Sản Phẩm'
-              : 'Quản Lý Danh Sách Đơn Hàng'
+              : currentTab === 'categories'
+              ? 'Quản Lý Danh Mục Ngành Hàng'
+              : currentTab === 'orders'
+              ? 'Quản Lý Danh Sách Đơn Hàng'
+              : 'Quản Lý Danh Sách Tài Khoản & Phân Quyền'
           }
         />
 
@@ -150,7 +238,7 @@ export default function AdminPage() {
                 <MetricCard
                   title="Danh Mục Hàng"
                   value={totalCategories}
-                  subtext="Ngành hàng nội thất & thủ công"
+                  subtext="Ngành hàng nội thất & decor"
                   iconBg="var(--secondary-light)"
                   icon={(
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--secondary)" strokeWidth="2">
@@ -262,7 +350,7 @@ export default function AdminPage() {
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <button
-                            onClick={() => handleOpenEditModal(p)}
+                            onClick={() => handleOpenEditProductModal(p)}
                             className="btn btn-sm btn-outline"
                           >
                             Cập nhật kho
@@ -296,7 +384,7 @@ export default function AdminPage() {
                   </span>
                 </div>
 
-                <button onClick={handleOpenAddModal} className="btn btn-primary">
+                <button onClick={handleOpenAddProductModal} className="btn btn-primary">
                   + Thêm Sản Phẩm Mới
                 </button>
               </div>
@@ -305,7 +393,7 @@ export default function AdminPage() {
                 <thead>
                   <tr>
                     <th style={{ width: '60px' }}>ID</th>
-                    <th>Hình ảnh & Tên sản phẩm</th>
+                    <th>Hình ảnh &amp; Tên sản phẩm</th>
                     <th>Danh mục</th>
                     <th>Giá niêm yết</th>
                     <th>Tồn kho</th>
@@ -343,7 +431,7 @@ export default function AdminPage() {
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px' }}>
                           <button
-                            onClick={() => handleOpenEditModal(p)}
+                            onClick={() => handleOpenEditProductModal(p)}
                             className="btn btn-sm btn-outline"
                             title="Chỉnh sửa"
                           >
@@ -367,7 +455,93 @@ export default function AdminPage() {
           )}
 
           {/* ================================================================
-              TAB 3: ORDERS MANAGEMENT
+              TAB 3: CATEGORIES CRUD
+             ================================================================ */}
+          {currentTab === 'categories' && (
+            <div className="admin-card-box">
+              <div className="admin-card-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input
+                    type="text"
+                    placeholder="Tìm danh mục theo tên hoặc ID..."
+                    className="form-control"
+                    style={{ width: '280px' }}
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                  />
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Tổng cộng: <strong>{filteredCategories.length}</strong> danh mục
+                  </span>
+                </div>
+
+                <button onClick={handleOpenAddCategoryModal} className="btn btn-primary">
+                  + Thêm Danh Mục Mới
+                </button>
+              </div>
+
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '120px' }}>Mã định danh (Slug)</th>
+                    <th>Biểu tượng &amp; Tên danh mục</th>
+                    <th>Số lượng sản phẩm</th>
+                    <th style={{ textAlign: 'right' }}>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCategories.map(c => (
+                    <tr key={c.id}>
+                      <td>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 600, background: 'var(--bg-page)', padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border-light)' }}>
+                          {c.id}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '20px' }}>{c.icon || '📦'}</span>
+                          <span style={{ fontWeight: 700 }}>{c.name}</span>
+                          {c.id === 'all' && (
+                            <span style={{ fontSize: '11px', background: 'var(--bg-muted)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-muted)' }}>
+                              Mặc định
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                          {c.count || 0} sản phẩm
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {c.id !== 'all' && (
+                          <div style={{ display: 'inline-flex', gap: '6px' }}>
+                            <button
+                              onClick={() => handleOpenEditCategoryModal(c)}
+                              className="btn btn-sm btn-outline"
+                              title="Chỉnh sửa danh mục"
+                            >
+                              ✏️ Sửa
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(c)}
+                              className="btn btn-sm btn-outline"
+                              style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red-light)' }}
+                              title="Xóa danh mục"
+                            >
+                              🗑️ Xóa
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ================================================================
+              TAB 4: ORDERS MANAGEMENT
              ================================================================ */}
           {currentTab === 'orders' && (
             <div className="admin-card-box">
@@ -514,6 +688,147 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* ================================================================
+              TAB 5: USERS & ROLES MANAGEMENT
+             ================================================================ */}
+          {currentTab === 'users' && (
+            <div className="admin-card-box">
+              <div className="admin-card-header" style={{ flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h2 style={{ fontSize: '16px', fontWeight: 800 }}>Danh Sách Người Dùng &amp; Phân Quyền ({filteredUsers.length} tài khoản)</h2>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Quản trị viên có thể tạo tài khoản admin mới hoặc phân quyền khách hàng</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  {/* Role filter buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-page)', padding: '4px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-light)' }}>
+                    {[
+                      { id: 'ALL', label: 'Tất cả' },
+                      { id: 'ADMIN', label: '🛡️ Quản trị viên' },
+                      { id: 'CUSTOMER', label: '👤 Khách hàng' }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setUserRoleFilter(tab.id)}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          border: 'none',
+                          background: userRoleFilter === tab.id ? 'var(--primary)' : 'transparent',
+                          color: userRoleFilter === tab.id ? '#ffffff' : 'var(--text-body)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Tìm theo tên, email, SĐT..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="form-control"
+                    style={{ width: '220px', fontSize: '12.5px', padding: '6px 12px' }}
+                  />
+
+                  <button onClick={handleOpenAddUserModal} className="btn btn-primary">
+                    + Thêm Tài Khoản Mới
+                  </button>
+                </div>
+              </div>
+
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '80px' }}>ID</th>
+                    <th>Họ và tên</th>
+                    <th>Email</th>
+                    <th>Số điện thoại</th>
+                    <th>Vai trò (Role)</th>
+                    <th style={{ textAlign: 'right' }}>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map(user => (
+                    <tr key={user.id}>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
+                        #{String(user.id).slice(0, 8)}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '50%',
+                            background: user.role === 'ADMIN' ? 'var(--primary)' : '#0284c7',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: '13px'
+                          }}>
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700 }}>
+                              {user.name}
+                              {String(user.id) === String(currentUser.id) && (
+                                <span style={{ marginLeft: '6px', fontSize: '11px', color: 'var(--primary)', fontWeight: 600 }}>
+                                  (Bạn)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{user.email}</td>
+                      <td>{user.phone || 'Chưa cập nhật'}</td>
+                      <td>
+                        {user.role === 'ADMIN' ? (
+                          <span style={{ fontSize: '11.5px', fontWeight: 800, background: 'var(--primary-light)', color: 'var(--primary)', padding: '4px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            🛡️ Quản Trị Viên (ADMIN)
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '11.5px', fontWeight: 700, background: 'var(--secondary-light)', color: 'var(--secondary)', padding: '4px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            👤 Khách Hàng (CUSTOMER)
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                          <button
+                            onClick={() => handleOpenEditUserModal(user)}
+                            className="btn btn-sm btn-outline"
+                            title="Sửa quyền / thông tin"
+                          >
+                            ✏️ Sửa
+                          </button>
+                          {String(user.id) !== String(currentUser.id) && (
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              className="btn btn-sm btn-outline"
+                              style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red-light)' }}
+                              title="Xóa tài khoản"
+                            >
+                              🗑️ Xóa
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -522,6 +837,20 @@ export default function AdminPage() {
         isOpen={productModalOpen}
         productToEdit={editingProduct}
         onClose={() => setProductModalOpen(false)}
+      />
+
+      {/* Modal CRUD Category Form */}
+      <CategoryFormModal
+        isOpen={categoryModalOpen}
+        categoryToEdit={editingCategory}
+        onClose={() => setCategoryModalOpen(false)}
+      />
+
+      {/* Modal CRUD User Form */}
+      <UserFormModal
+        isOpen={userModalOpen}
+        userToEdit={editingUser}
+        onClose={() => setUserModalOpen(false)}
       />
 
       {/* Modal Order Details */}
